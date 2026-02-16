@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App -->
+    <string name="app_name">AOAI</string>
+
+    <!-- Participation / P2P Dialog -->
+    <string name="p2p_join_title">AOAI 분산 AI 참여</string>
+
+    <string name="p2p_join_body">
+        AOAI는 사용자들의 디바이스가 함께 만드는 분산 AI입니다.\n
+        AOAI는 항상 무료입니다.\n
+        함께 AI를 만들어가시겠습니까?
+    </string>
+
+    <string name="p2p_join_confirm">참여하기</string>
+    <string name="p2p_join_later">나중에</string>
+
+</resources>
