@@ -1,86 +1,86 @@
 package com.aoai.chat
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import com.aoai.chat.ai.AOAIEngine
-import com.aoai.chat.p2p.AOAANodeManager
-import com.aoai.chat.p2p.NodeForegroundService
-import com.aoai.chat.p2p.ParticipationStore
+import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
+import androidx.fragment.app.FragmentActivity
+import com.aoai.chat.core.PermissionManager
+import com.aoai.chat.core.AOAIKeepAliveService
 import com.aoai.chat.ui.AOAIApp
 import com.aoai.chat.ui.AOAITheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+/**
+ * BiometricPrompt 사용을 위해 FragmentActivity를 상속합니다.
+ */
+class MainActivity : FragmentActivity() {
 
-    // ✅ Activity 재생성 대비: lazy로 생성 (MVP 안전장치)
-    private val engine by lazy { AOAIEngine() }
-
-    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-    // ✅ Android 13+ 알림 권한 런처
-    private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            // 권한 허용 후, 참여가 저장되어 있으면 서비스 자동 시작
-            if (granted) {
-                activityScope.launch {
-                    val enabled = ParticipationStore.enabledFlow(this@MainActivity).first()
-                    if (enabled) {
-                        NodeForegroundService.start(this@MainActivity)
-                    }
-                }
-            }
-            // 거부된 경우: 서비스 시작하지 않음 (크래시 방지)
-        }
+    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ✅ 권한 요청 런처 초기화
+        permissionLauncher = PermissionManager.createLauncher(this) { allGranted ->
+            if (!allGranted) {
+                Toast.makeText(this, "필수 권한이 거부되었습니다. 일부 기능이 제한될 수 있습니다.", Toast.LENGTH_LONG).show()
+            }
+        }
+
         enableEdgeToEdge()
 
-        // ✅ 노드 매니저는 앱 컨텍스트로 초기화하는 게 안전
-        AOAANodeManager.initialize(applicationContext)
+        val aoai01 = (application as AOAIApplication).aoai01
 
-        // ✅ (중요) Android 13+ 알림 권한 확인/요청
-        // - 권한 없는데 서비스가 startForeground를 하면 일부 버전에서 즉시 크래시 가능
-        ensureNotificationPermissionIfNeeded()
+        // ✅ 안정적인 통신을 위한 포그라운드 서비스 시작
+        AOAIKeepAliveService.startService(this)
 
         setContent {
+            var showConsentDialog by remember { mutableStateOf(!PermissionManager.hasAllPermissions(this@MainActivity)) }
+
             AOAITheme {
-                AOAIApp(engine)
+                if (showConsentDialog) {
+                    // ✅ 통합 권한 및 연산 참여 동의 다이얼로그
+                    AlertDialog(
+                        onDismissRequest = { /* 필수 동의이므로 닫기 방지 가능 */ },
+                        title = { Text("AOAI 서비스 이용 동의") },
+                        text = {
+                            Text("AOAI 앱의 원활한 서비스 이용을 위해 다음 권한 및 연산 참여 수락이 필요합니다:\n\n" +
+                                 "1. 전화 상태: 기기 식별 및 최적화\n" +
+                                 "2. 카메라/마이크: 사진, 동영상 및 음성 인식 기능\n" +
+                                 "3. 파일/미디어: 데이터 저장 및 업로드\n" +
+                                 "4. 연산 참여: AOAI 분산 지능 네트워크 기여\n\n" +
+                                 "수락하시면 모든 기능을 한 번에 활성화합니다.")
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showConsentDialog = false
+                                permissionLauncher.launch(PermissionManager.getRequiredPermissions())
+                            }) {
+                                Text("모두 수락 및 시작")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                finishAffinity()
+                            }) {
+                                Text("종료")
+                            }
+                        }
+                    )
+                }
+
+                AOAIApp(aoai01)
             }
         }
     }
 
-    private fun ensureNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-
-        val granted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (!granted) {
-            // 사용자에게 1회 요청
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            // 이미 허용: 참여 저장 상태면 바로 서비스 시작 가능
-            activityScope.launch {
-                val enabled = ParticipationStore.enabledFlow(this@MainActivity).first()
-                if (enabled) {
-                    NodeForegroundService.start(this@MainActivity)
-                }
-            }
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        // 필요 시 서비스 중단 로직 추가 가능 (보통은 프로세스 종료 시까지 유지)
     }
 }

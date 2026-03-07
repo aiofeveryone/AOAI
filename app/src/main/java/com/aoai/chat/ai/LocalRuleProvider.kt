@@ -1,27 +1,33 @@
 package com.aoai.chat.ai
 
-import com.aoai.chat.core.AiReply
-import com.aoai.chat.core.ChatMessage
-import com.aoai.chat.core.ChatSession
-import kotlin.system.measureTimeMillis
+import com.aoai.chat.core.AOAIProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class LocalRuleProvider : AiProvider {
-    override val name: String = "local-rule"
+/**
+ * (보관/유지용)
+ * 기존 Rule 기반 응답을 AOAIProvider 인터페이스(sendMessage)에 맞춰 유지.
+ *
+ * ✅ 현재는 placeholder.
+ * 나중에 규칙/패턴 기반 답변 로직을 아래 when 블록에 추가하면 됨.
+ */
+class LocalRuleProvider : AOAIProvider {
 
-    override suspend fun canHandle(session: ChatSession, messages: List<ChatMessage>): Boolean {
-        return true // 지금은 항상 처리
-    }
+    override val name: String = "LOCAL_RULE"
 
-    override suspend fun reply(session: ChatSession, messages: List<ChatMessage>): AiReply {
-        val last = messages.lastOrNull()?.text.orEmpty()
-        var out = ""
-        val t = measureTimeMillis {
-            out = when {
-                last.contains("정체", ignoreCase = true) -> "나는 AOAI의 로컬 엔진이야. 앞으로 P2P/로컬모델로 진화할 거야."
-                last.contains("도움", ignoreCase = true) -> "무엇을 도와줄까? (UI/로컬모델/P2P 중 우선순위를 정해보자)"
-                else -> "AOAI local response: $last"
-            }
-        }
-        return AiReply(text = out, provider = name, latencyMs = t)
+    override suspend fun sendMessage(input: String): String = withContext(Dispatchers.Default) {
+        val text = input.trim()
+        if (text.isEmpty()) return@withContext ""
+
+        // TODO: 기존 rule 로직이 있으면 여기로 옮기면 됨
+        // 예시 템플릿:
+        // return@withContext when {
+        //     text.startsWith("도움말") -> "사용 방법: ..."
+        //     text.contains("버전") -> "현재 버전은 ..."
+        //     else -> ""
+        // }
+
+        // ✅ 룰이 아직 없으면 빈 문자열로 보내서 상위 fallback이 처리하게 하는게 가장 깔끔함
+        ""
     }
 }

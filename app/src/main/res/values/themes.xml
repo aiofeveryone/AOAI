@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.AOAI" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    <!-- ✅ 리소스 링크 안정화용 (Material3 XML 테마 참조 제거) -->
+    <style name="Theme.AOAI" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- 필요 시 여기서만 최소 오버라이드 -->
     </style>
 
 </resources>

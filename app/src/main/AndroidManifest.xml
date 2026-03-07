@@ -1,72 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.aoai.chat">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 🌐 인터넷 -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- 📡 네트워크 상태 확인 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- 📶 WiFi 상태 확인 -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!-- 📷 QR 스캔용 카메라 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- ✅ Foreground Service -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-    <!-- ✅ Android 14+ : dataSync 타입 사용 시 -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-
-    <!-- ✅ Android 13+ 알림 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- 대략적인 위치 권한만 유지하여 심사 리스크 최소화 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- 하드웨어 요구사항 완화 (지원 기기 호환성 확보) -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
 
     <application
         android:name=".AOAIApplication"
-        android:allowBackup="false"
-        android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher_round"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AOAI"
+        android:theme="@style/Theme.AOAI">
 
-    <!-- ✅ 개발/내부망 테스트용: HTTP 허용 -->
-    android:usesCleartextTraffic="true"
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
-    <!-- ✅ 특정 도메인만 허용하려면 아래 XML도 유지 -->
-    android:networkSecurityConfig="@xml/network_security_config">
+        <service
+            android:name=".core.AOAIKeepAliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="AOAI communication and process maintenance" />
+        </service>
 
-    <!-- ✅ Foreground Service: 참여(노드) 유지 -->
-    <service
-        android:name=".p2p.NodeForegroundService"
-        android:exported="false"
-        android:foregroundServiceType="dataSync" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
-    <!-- QR 스캔 Activity -->
-    <activity
-        android:name=".ui.QRScanActivity"
-        android:screenOrientation="portrait"
-        android:exported="false" />
+        <!-- Home screen widget - 비활성화 (android:enabled="false") -->
+        <receiver
+            android:name=".ui.AOAIWidgetProvider"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.aoai.chat.UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/aoai_widget_info" />
+        </receiver>
+        <service
+            android:name=".ui.AOAIWidgetService"
+            android:enabled="false"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
-    <!-- 내부 WebView -->
-    <activity
-        android:name=".ui.WebViewActivity"
-        android:exported="false" />
+    </application>
 
-    <!-- ✅ 런처 Activity -->
-    <activity
-        android:name=".MainActivity"
-        android:exported="true">
-
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
-
-    </activity>
-
-</application>
-
-    </manifest>
+</manifest>

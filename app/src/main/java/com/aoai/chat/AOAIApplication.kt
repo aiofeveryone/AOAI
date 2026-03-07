@@ -1,58 +1,42 @@
 package com.aoai.chat
 
-import android.Manifest
 import android.app.Application
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
-import com.aoai.chat.p2p.NodeForegroundService
-import com.aoai.chat.p2p.ParticipationStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import com.aoai.chat.ai.ServerPhoneProvider
+import com.aoai.chat.core.brain.aoai01.AOAI01Agent
+import com.aoai.chat.core.brain.aoai01.AOAI01Learner
+import com.aoai.chat.core.brain.aoai01.AOAI01Policy
+import com.aoai.chat.core.brain.aoai01.lifecore.AOAI01LifeSystem
+import com.aoai.chat.core.brain.aoai01.persistence.RoomAOAI01StateStore
+import com.aoai.chat.core.brain.aoai01.providers.AOAI01LocalProvider
+import com.aoai.chat.core.brain.aoai01.providers.AOAI01PhoneServerAdapter
+import com.aoai.chat.core.brain.aoai01.providers.GeminiProvider
 
 class AOAIApplication : Application() {
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    lateinit var aoai01: AOAI01Agent
+        private set
 
     override fun onCreate() {
         super.onCreate()
 
-        // ✅ 앱 시작 시 "참여 ON"이면 Foreground Service 자동 시작
-        // ✅ 단, 알림 권한/설정이 준비된 경우에만 시작 (즉사 루프 방지)
-        appScope.launch {
-            val enabled = ParticipationStore.enabledFlow(this@AOAIApplication).first()
-            if (!enabled) return@launch
+        val stateStore = RoomAOAI01StateStore(this)
+        val lifeSystem = AOAI01LifeSystem(stateStore)
+        val learner = AOAI01Learner(stateStore)
+        val policy = AOAI01Policy(stateStore)
 
-            val notificationsEnabled = NotificationManagerCompat
-                .from(this@AOAIApplication)
-                .areNotificationsEnabled()
+        // 실제 지능 엔진들 생성
+        val local = AOAI01LocalProvider()
+        val server = AOAI01PhoneServerAdapter(ServerPhoneProvider())
 
-            val postNotiGranted =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    ContextCompat.checkSelfPermission(
-                        this@AOAIApplication,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED
-                } else {
-                    true
-                }
-
-            if (notificationsEnabled && postNotiGranted) {
-                // ✅ 조건 OK → 참여 서비스 시작
-                try {
-                    NodeForegroundService.start(this@AOAIApplication)
-                } catch (_: Exception) {
-                    // 혹시 모를 예외에도 루프 방지
-                    ParticipationStore.setEnabled(this@AOAIApplication, false)
-                }
-            } else {
-                // ❌ 조건 불충족 → 자동 시작하지 않음 + 루프 방지 위해 참여 OFF로 되돌림
-                ParticipationStore.setEnabled(this@AOAIApplication, false)
-            }
-        }
+        // 엔진이 포함된 최종 에이전트 가동
+        aoai01 = AOAI01Agent(
+            store = stateStore,
+            policy = policy,
+            learner = learner,
+            lifeSystem = lifeSystem,
+            localProvider = local,
+            phoneServerProvider = server,
+            geminiProvider = GeminiProvider()
+        )
     }
 }

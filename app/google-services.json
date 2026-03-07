@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "999951947994",
+    "project_id": "aoai-e92ab",
+    "storage_bucket": "aoai-e92ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999951947994:android:ae02676ac24bcf8d056de3",
+        "android_client_info": {
+          "package_name": "aoai.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc5lUP7gSVtkLXAxBDEa7io_bN0SSIJQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
