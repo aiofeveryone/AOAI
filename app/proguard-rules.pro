@@ -28,6 +28,13 @@
 -keep class androidx.biometric.** { *; }
 -dontwarn androidx.biometric.**
 
-# 7. AOAI Core Brain 관련 (리플렉션 방지)
+# 7. AOAI Core Brain 관련 (리플렉션 및 직렬화 보호)
 -keep class com.aoai.chat.core.brain.aoai01.** { *; }
 -keep class com.aoai.chat.data.** { *; }
+-keep class com.aoai.chat.ai.** { *; }
+
+# 8. Room Auto-generated classes
+-keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.room.Entity
+-keep class * extends androidx.room.Dao
+-keep class **_Impl { *; }

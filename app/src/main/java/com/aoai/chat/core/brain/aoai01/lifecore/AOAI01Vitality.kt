@@ -33,7 +33,11 @@ class AOAI01Vitality(private val store: AOAI01StateStore) {
      * - 실패 또는 자원 낭비: 에너지 소모
      */
     fun update(delta: Double) {
-        val next = (_energy.value + delta).coerceIn(0.0, 200.0)
+        // ✅ 대사율(Metabolism) 계산: 에너지가 높을수록 소모도 빠름
+        val metabolicCost = if (_energy.value > 120.0) 0.05 else 0.02
+        val finalDelta = delta - metabolicCost
+        
+        val next = (_energy.value + finalDelta).coerceIn(0.0, 200.0)
         _energy.value = next
         
         // 저장은 백그라운드에서 수행

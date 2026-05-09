@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -98,6 +99,8 @@ fun AOAIChatScreen(
     var showClearDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showCommunityMenu by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var replyingTo by remember { mutableStateOf<ChatMessage?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -107,9 +110,9 @@ fun AOAIChatScreen(
     ) { results ->
         val allGranted = results.values.all { it }
         if (allGranted) {
-            Toast.makeText(context, "요청하신 모든 권한이 허용되었습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.permission_granted_toast), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "일부 권한이 거부되어 기능 사용이 제한될 수 있습니다.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -121,7 +124,20 @@ fun AOAIChatScreen(
 
     DisposableEffect(Unit) {
         tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) { tts?.language = selectedLocale }
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = selectedLocale
+                tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {
+                        scope.launch { isSpeaking = true }
+                    }
+                    override fun onDone(utteranceId: String?) {
+                        scope.launch { isSpeaking = false }
+                    }
+                    override fun onError(utteranceId: String?) {
+                        scope.launch { isSpeaking = false }
+                    }
+                })
+            }
         }
         onDispose { tts?.stop(); tts?.shutdown() }
     }
@@ -142,12 +158,10 @@ fun AOAIChatScreen(
                         tts?.language = detectedLocale
                     }
                 } catch (e: Exception) { Log.e("AOAI_TTS", "Language detection failed", e) }
-                isSpeaking = true
+                
                 tts?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, "AOAI_TTS")
-                delay(1000L * (textToSpeak.length / 5).coerceAtLeast(2))
-                isSpeaking = false
             }
-        } else { Toast.makeText(context, "읽어줄 내용이 없습니다.", Toast.LENGTH_SHORT).show() }
+        } else { Toast.makeText(context, context.getString(R.string.no_content_to_read), Toast.LENGTH_SHORT).show() }
     }
 
     var isMasterMode by remember { mutableStateOf(AOAI01MasterGuardian.isOverrideActive()) }
@@ -158,7 +172,7 @@ fun AOAIChatScreen(
     var fontSizeMultiplier by remember { mutableStateOf(1f) }
     var capturedUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && capturedUri != null) { agent.sendWithImage("[사진 촬영됨]", capturedUri!!) }
+        if (success && capturedUri != null) { agent.sendWithImage(context.getString(R.string.image_captured_label), capturedUri!!) }
     }
 
     fun createTempFileUri(extension: String): Uri {
@@ -179,9 +193,9 @@ fun AOAIChatScreen(
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, selectedLocale)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "말씀해 주세요")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.stt_prompt))
         }
-        try { speechLauncher.launch(intent) } catch (e: Exception) { Toast.makeText(context, "음성 인식 지원 불가", Toast.LENGTH_SHORT).show() }
+        try { speechLauncher.launch(intent) } catch (e: Exception) { Toast.makeText(context, context.getString(R.string.stt_not_supported), Toast.LENGTH_SHORT).show() }
     }
 
     LaunchedEffect(messages.size, messages.lastOrNull()?.text) {
@@ -204,17 +218,21 @@ fun AOAIChatScreen(
         val isLangRequest = (input.contains("말해") || input.contains("대화") || input.lowercase().contains("speak") || input.lowercase().contains("talk")) && langKeywords.any { input.contains(it) }
 
         if (isLangRequest) {
-            input = "이제부터 사용자가 요청한 언어로 대화하자. 먼저 '모두에게 무료 서비스 제공하는 aoai01 입니다. 무엇을 도와드릴까요?' 이 문장을 해당 언어로 번역해서 인사부터 해줘. 요청: $input"
+            input = context.getString(R.string.lang_request_system_prompt, input)
         } else if ((input.contains("번역") || input.contains("translate")) && messages.isNotEmpty()) {
             val lastAssistantMsg = messages.lastOrNull { it.role == Role.ASSISTANT && it.state == MsgState.NORMAL }
             if (lastAssistantMsg != null && input.length < 15) {
-                input = "이전 답변 내용을 다시 반복하지 말고, 바로 '${input}'에 맞춰서 해당 언어로 번역한 결과만 출력해줘. 대상 내용: \"${lastAssistantMsg.text}\""
+                input = context.getString(R.string.translate_request_system_prompt, input, lastAssistantMsg.text)
             }
         }
 
         if (currentReplyingTo != null) {
             val replyText = currentReplyingTo.text
-            input = if (input.isEmpty()) { "\"$replyText\" 이 내용에 이어서 더 대화해줘." } else { "\"$replyText\" 이 내용에 대해서: $input" }
+            input = if (input.isEmpty()) { 
+                context.getString(R.string.continue_conversation_prompt, replyText)
+            } else { 
+                context.getString(R.string.reply_to_prompt, replyText, input)
+            }
         }
 
         if (input.contains("권한") && (input.contains("허용") || input.contains("수락"))) {
@@ -226,7 +244,7 @@ fun AOAIChatScreen(
                 val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:119"))
                 context.startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(context, "전화 걸기 실패", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.call_failed), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -236,9 +254,26 @@ fun AOAIChatScreen(
         scope.launch { agent.send(input) }
     }
 
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text(stringResource(R.string.about_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.about_subtitle), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(stringResource(R.string.about_description))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) { Text(stringResource(android.R.string.ok)) }
+            }
+        )
+    }
+
     if (showLanguageDialog) {
         val languageRawList = listOf(
-            "Detect language" to Locale.getDefault(),
+            context.getString(R.string.detect_language) to Locale.getDefault(),
             "Abkhazian" to Locale("ab"), "Acehnese" to Locale("ace"), "Acoli" to Locale("ach"),
             "Afar" to Locale("aa"), "Afrikaans" to Locale("af"), "Akan" to Locale("ak"),
             "Albanian" to Locale("sq"), "Alur" to Locale("alz"), "Amharic" to Locale("am"),
@@ -324,13 +359,13 @@ fun AOAIChatScreen(
         )
 
         val languageOptions = languageRawList.map { (name, locale) ->
-            if (name == "Detect language") name to locale
+            if (name == context.getString(R.string.detect_language)) name to locale
             else "$name(${locale.getDisplayLanguage(Locale.KOREAN)})" to locale
         }
 
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { Text("언어 설정") },
+            title = { Text(stringResource(R.string.language_settings)) },
             text = {
                 Box(modifier = Modifier.heightIn(max = 450.dp)) {
                     LazyColumn {
@@ -344,14 +379,14 @@ fun AOAIChatScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text("취소") } }
+            confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
     if (showHistorySheet) {
         ModalBottomSheet(onDismissRequest = { showHistorySheet = false }, sheetState = sheetState) {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp).navigationBarsPadding()) {
-                Text(text = "최근 대화 목록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.recent_conversations), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 LazyColumn(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
                     items(uiState.messages.filter { it.role == Role.USER && !it.isHidden }.reversed()) { msg ->
                         ListItem(
@@ -371,10 +406,10 @@ fun AOAIChatScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("대화 내역 전체 삭제") },
-            text = { Text("보관된 모든 대화 내용이 삭제됩니다. 계속할까요?") },
-            confirmButton = { TextButton(onClick = { showClearDialog = false; agent.clearChat() }) { Text("삭제") } },
-            dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text("취소") } }
+            title = { Text(stringResource(R.string.clear_history_title)) },
+            text = { Text(stringResource(R.string.clear_history_body)) },
+            confirmButton = { TextButton(onClick = { showClearDialog = false; agent.clearChat() }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -384,16 +419,60 @@ fun AOAIChatScreen(
             TopAppBar(
                 navigationIcon = { IconButton(onClick = { showHistorySheet = true }) { Icon(Icons.Filled.History, null) } },
                 title = {
-                    val summary = messages.lastOrNull { it.role == Role.USER && !it.isHidden }?.text ?: "새로운 대화"
+                    val summary = messages.lastOrNull { it.role == Role.USER && !it.isHidden }?.text ?: stringResource(R.string.new_conversation)
                     Column(modifier = Modifier.clickable { showHistorySheet = true }) {
                         Text(summary, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(if (isMasterMode) "MASTER MODE" else "이전 대화 보기", style = MaterialTheme.typography.labelSmall, color = if (isMasterMode) Color.Red else MaterialTheme.colorScheme.primary)
+                        Text(if (isMasterMode) stringResource(R.string.master_mode_label) else stringResource(R.string.view_previous_conversations), style = MaterialTheme.typography.labelSmall, color = if (isMasterMode) Color.Red else MaterialTheme.colorScheme.primary)
                     }
                 },
                 actions = {
+                    Box(modifier = Modifier.padding(end = 4.dp)) {
+                        IconButton(onClick = { showCommunityMenu = true }) {
+                            Icon(Icons.Default.Groups, contentDescription = "Community")
+                        }
+                        DropdownMenu(
+                            expanded = showCommunityMenu,
+                            onDismissRequest = { showCommunityMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_about)) },
+                                leadingIcon = { Icon(Icons.Default.Info, null) },
+                                onClick = {
+                                    showCommunityMenu = false
+                                    showAboutDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_contribute_github)) },
+                                leadingIcon = { Icon(Icons.Default.Code, null) },
+                                onClick = {
+                                    showCommunityMenu = false
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.github_url))))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.community_discord)) },
+                                leadingIcon = { Icon(Icons.Default.Chat, null) },
+                                onClick = {
+                                    showCommunityMenu = false
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.discord_url))))
+                                }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_report_bug)) },
+                                leadingIcon = { Icon(Icons.Default.BugReport, null) },
+                                onClick = {
+                                    showCommunityMenu = false
+                                    // Github Issues link or similar
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.github_url) + "/issues")))
+                                }
+                            )
+                        }
+                    }
                     Box(modifier = Modifier.padding(end = 8.dp).size(44.dp).clip(RoundedCornerShape(8.dp)).clickable { 
                         agent.clearChatUIOnly() 
-                        Toast.makeText(context, "화면을 정리하고 대화를 새로 시작합니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.chat_cleared_toast), Toast.LENGTH_SHORT).show()
                     }, contentAlignment = Alignment.Center) {
                         Image(painter = painterResource(id = R.mipmap.ic_launcher_foreground), contentDescription = "AOAI Logo", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                     }
@@ -421,7 +500,11 @@ fun AOAIChatScreen(
         ) {
             currentNetworkInfo?.let { info ->
                 val icon = if (info.isWifi) "📡" else "📶"
-                val statusText = if (info.isOnline) { "$icon 통신 연결상태 ${info.description} ${info.strength}" } else { "❌ 네트워크 연결 끊김" }
+                val statusText = if (info.isOnline) { 
+                    "$icon " + stringResource(R.string.network_status_connected) + " ${info.description} ${info.strength}" 
+                } else { 
+                    stringResource(R.string.network_status_disconnected) 
+                }
                 Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
                     Text(text = statusText, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
@@ -488,7 +571,7 @@ fun AOAIChatScreen(
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { startSpeechToText() }) { Icon(Icons.Filled.Mic, null) }
                 IconButton(onClick = { speakTargetMessage() }) {
-                    Icon(imageVector = if (isSpeaking) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp, contentDescription = "읽어주기", tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    Icon(imageVector = if (isSpeaking) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp, contentDescription = stringResource(R.string.tts_read_aloud), tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { showLanguageDialog = true }) { Icon(Icons.Filled.Language, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp)) }
@@ -519,7 +602,7 @@ fun AOAIChatScreen(
                         inputText = filteredText
                     },
                     modifier = Modifier.weight(1f).focusRequester(focusRequester),
-                    placeholder = { Text("무엇이든 물어보세요") }, 
+                    placeholder = { Text(stringResource(R.string.chat_placeholder)) },
                     enabled = isOnline
                 )
                 Spacer(Modifier.width(8.dp))

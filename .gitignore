@@ -1,15 +1,27 @@
+# Signing
+*.keystore
+*.jks
+*.pem
+
+# APK/AAB
+*.apk
+*.aab
+app/release/
+
+# Android Studio
+.idea/
+.gradle/
+local.properties
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+
+# Build
+build/
+app/build/
+
+# OS specific
 .DS_Store
-/build
+
+# Captures
 /captures
 .externalNativeBuild
 .cxx
-local.properties

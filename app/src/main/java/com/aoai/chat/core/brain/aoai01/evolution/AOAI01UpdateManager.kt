@@ -4,6 +4,7 @@ import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -24,9 +25,22 @@ object AOAI01UpdateManager {
     // ✅ 구글 플레이스토어 경로로 수정 (패키지명: com.aoai.chat)
     private const val PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.aoai.chat"
 
-    private val json = Json { ignoreUnknownKeys = true }
+    // ✅ 맞춤형 User-Agent 설정 (버전 동기화)
+    private const val USER_AGENT = "AOAI-Android/1.0.116 (Evolutionary Intelligent Agent; com.aoai.chat)"
+
+    private val json = Json { 
+        ignoreUnknownKeys = true 
+        coerceInputValues = true
+    }
     private val client = HttpClient(OkHttp) {
         install(ContentNegotiation) { json(json) }
+        install(UserAgent) {
+            agent = USER_AGENT
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 30000
+            connectTimeoutMillis = 10000
+        }
     }
 
     @Serializable
@@ -34,7 +48,9 @@ object AOAI01UpdateManager {
         val latestVersionCode: Int,
         val latestVersionName: String,
         val releaseNotes: String,
-        val updateUrl: String? = null
+        val updateUrl: String? = null,
+        val minRequiredVersion: Int = 0, // ✅ 강제 업데이트 기준 추가
+        val priority: Int = 1 // 1: 일반, 2: 중요, 3: 긴급(강제)
     )
 
     /**
@@ -44,7 +60,6 @@ object AOAI01UpdateManager {
         try {
             Log.d(TAG, "Checking for new version... Current: $currentVersionCode")
             
-            // 실제 서버 응답을 시뮬레이션하거나 실제 API를 호출합니다.
             val info: VersionInfo = client.get(UPDATE_CHECK_URL).body()
 
             if (info.latestVersionCode > currentVersionCode) {
@@ -64,16 +79,27 @@ object AOAI01UpdateManager {
      */
     fun getUpdatePrompt(info: VersionInfo): String {
         val finalUpdateUrl = info.updateUrl ?: PLAY_STORE_URL
+        val header = when(info.priority) {
+            3 -> "🚨 [긴급 보안/성능 업데이트 안내]"
+            2 -> "✨ [중요 기능 업데이트 안내]"
+            else -> "🚀 [AOAI 새로운 버전 안내]"
+        }
+        
+        val footer = if (info.priority == 3) {
+            "\n⚠️ 이 버전은 안정적인 사용을 위해 필수적인 업데이트를 포함하고 있습니다."
+        } else ""
+
         return """
-[🚀 AOAI 새로운 버전 안내]
-aoai01이 새로운 업데이트를 감지했습니다. 
+$header
+aoai01이 새로운 진화 단계를 감지했습니다. 
 더 똑똑해진 지능과 개선된 성능을 경험해 보세요!
 
 - 최신 버전: ${info.latestVersionName}
 - 업데이트 내용: ${info.releaseNotes}
+$footer
 
 지금 바로 업데이트하시겠습니까? 
-아래 구글 플레이스토어 링크에서 최신 버전을 받으실 수 있습니다:
+아래 링크에서 최신 버전을 받으실 수 있습니다:
 $finalUpdateUrl
 """.trimIndent()
     }

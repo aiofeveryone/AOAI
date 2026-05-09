@@ -6,14 +6,105 @@
 
     <!-- Participation / P2P Dialog -->
     <string name="p2p_join_title">AOAI 분산 AI 참여</string>
-
     <string name="p2p_join_body">
         AOAI는 사용자들의 디바이스가 함께 만드는 분산 AI입니다.\n
         AOAI는 항상 무료입니다.\n
         함께 AI를 만들어가시겠습니까?
     </string>
-
     <string name="p2p_join_confirm">참여하기</string>
     <string name="p2p_join_later">나중에</string>
+
+    <!-- Permissions & Consent -->
+    <string name="permission_denied_toast">필수 권한이 거부되었습니다. 일부 기능이 제한될 수 있습니다.</string>
+    <string name="permission_granted_toast">요청하신 모든 권한이 허용되었습니다.</string>
+    <string name="consent_dialog_title">AOAI 서비스 이용 동의</string>
+    <string name="consent_dialog_body">AOAI 앱의 원활한 서비스 이용을 위해 다음 권한 및 연산 참여 수락이 필요합니다:\n\n1. 전화 상태: 기기 식별 및 최적화\n2. 카메라/마이크: 사진, 동영상 및 음성 인식 기능\n3. 파일/미디어: 데이터 저장 및 업로드\n4. 연산 참여: AOAI 분산 지능 네트워크 기여\n\n수락하시면 모든 기능을 한 번에 활성화합니다.</string>
+    <string name="consent_dialog_confirm">모두 수락 및 시작</string>
+    <string name="exit">종료</string>
+
+    <!-- Chat UI -->
+    <string name="no_content_to_read">읽어줄 내용이 없습니다.</string>
+    <string name="stt_prompt">말씀해 주세요</string>
+    <string name="stt_not_supported">음성 인식 지원 불가</string>
+    <string name="call_failed">전화 걸기 실패</string>
+    <string name="language_settings">언어 설정</string>
+    <string name="cancel">취소</string>
+    <string name="recent_conversations">최근 대화 목록</string>
+    <string name="clear_history_title">대화 내역 전체 삭제</string>
+    <string name="clear_history_body">보관된 모든 대화 내용이 삭제됩니다. 계속할까요?</string>
+    <string name="delete">삭제</string>
+    <string name="new_conversation">새로운 대화</string>
+    <string name="view_previous_conversations">이전 대화 보기</string>
+    <string name="chat_cleared_toast">화면을 정리하고 대화를 새로 시작합니다.</string>
+    <string name="network_status_connected">통신 연결상태</string>
+    <string name="network_status_disconnected">❌ 네트워크 연결 끊김</string>
+    <string name="chat_placeholder">무엇이든 물어보세요</string>
+
+    <!-- AI System Prompts (Hidden from user usually) -->
+    <string name="lang_request_system_prompt">이제부터 사용자가 요청한 언어로 대화하자. 먼저 \'모두에게 무료 서비스 제공하는 aoai01 입니다. 무엇을 도와드릴까요?\' 이 문장을 해당 언어로 번역해서 인사부터 해줘. 요청: %1$s</string>
+    <string name="translate_request_system_prompt">이전 답변 내용을 다시 반복하지 말고, 바로 \'%1$s\'에 맞춰서 해당 언어로 번역한 결과만 출력해줘. 대상 내용: \"%2$s\"</string>
+    <string name="continue_conversation_prompt">\"%1$s\" 이 내용에 이어서 더 대화해줘.</string>
+    <string name="reply_to_prompt">\"%1$s\" 이 내용에 대해서: %2$s</string>
+
+    <!-- AI Review Reasons -->
+    <string name="review_reason_critical_short">CRITICAL_SHORT</string>
+    <string name="review_reason_too_short">TOO_SHORT</string>
+    <string name="review_reason_repetitive">REPETITIVE_CONTENT</string>
+    <string name="review_reason_very_slow">VERY_SLOW_RESPONSE</string>
+    <string name="review_reason_slow">SLOW_RESPONSE</string>
+    <string name="review_reason_error_detected">ERROR_KEYWORD_DETECTED</string>
+
+    <!-- AI Review Keywords (comma separated) -->
+    <string name="review_error_keywords">오류,실패,제한,error,failed,limit</string>
+
+    <!-- AOAI Vision & About (Open Distributed AI) -->
+    <string name="about_title">AOAI: 오픈 분산 AI 프로젝트</string>
+    <string name="about_subtitle">한 기업의 소유가 아닌, 모두가 함께 만드는 AI</string>
+    <string name="about_description">
+        AOAI는 커뮤니티가 주도하는 분산형 AI 네트워크입니다.\n
+        중앙 서버에 의존하지 않고, 로컬 모델과 P2P 네트워킹을 통해 누구나 기여하고 혜택을 받을 수 있는 생태계를 구축합니다.
+    </string>
+
+    <!-- Participation Menu -->
+    <string name="menu_open_aoai">오픈 AOAI 참여</string>
+    <string name="menu_contribute_github">GitHub에서 기여하기</string>
+    <string name="menu_report_bug">버그 제보</string>
+    <string name="menu_translate">번역 도와주기</string>
+    <string name="menu_p2p_test">P2P 연산 참여 테스트</string>
+    <string name="menu_suggest_model">AI 모델 추천</string>
+    <string name="community_discord">Discord 커뮤니티</string>
+    <string name="menu_about">AOAI 정보</string>
+
+    <!-- URLs -->
+    <string name="github_url" translatable="false">https://github.com/aoai-project/aoai</string>
+    <string name="discord_url" translatable="false">https://discord.gg/aoai</string>
+
+    <!-- Chat UI Additional -->
+    <string name="master_mode_label">MASTER MODE</string>
+    <string name="tts_read_aloud">읽어주기</string>
+    <string name="image_captured_label">[사진 촬영됨]</string>
+    <string name="error_prefix">오류 발생: %1$s</string>
+    <string name="detect_language">언어 자동 감지</string>
+
+    <!-- Agent System Messages -->
+    <string name="memory_granted_msg">기억 저장 기능이 활성화되었습니다. 이제 우리의 대화가 AOAI의 진화에 기록됩니다.</string>
+    <string name="chat_stopped">대화가 중단되었습니다.</string>
+    <string name="image_analysis_request_label">[이미지 분석 요청]</string>
+    <string name="image_analysis_system_prompt">사용자가 이미지를 첨부했습니다. \'%1$s\' 라는 메시지와 함께요. 이미지를 분석하고 흥미로운 점을 찾아 먼저 질문하거나 의견을 말해주세요.</string>
+    <string name="system_identity_prompt">당신은 \'AOAI\' 프로젝트의 인공지능입니다. 당신은 특정 기업의 소유가 아닌, 전 세계 커뮤니티가 함께 만들어가는 오픈 소스 분산 AI입니다. 항상 투명하고 협력적인 태도로 사용자를 도와주세요.</string>
+    <string name="system_info_format">[시스템 정보: 현재 시각(KST) %1$s, 기분=%2$s, 배터리=%3$d%%, 경로=%4$s]</string>
+    <string name="user_input_label">사용자 입력: %1$s</string>
+    <string name="fallback_reason_primary_failed">기본 엔진 응답 실패</string>
+
+    <!-- Consent Dialog Enhancement -->
+    <string name="consent_dialog_title_open">AOAI 오픈 프로젝트 참여 동의</string>
+    <string name="consent_dialog_body_open">
+        AOAI는 투명한 오픈 소스 프로젝트이며, 사용자의 디바이스가 함께 지능을 만드는 분산 AI입니다.\n\n
+        참여 시 다음이 활성화됩니다:\n
+        1. P2P 분산 연산 참여 (기기 유휴 자원 활용)\n
+        2. 로컬 AI 모델 최적화 데이터 기여 (비식별화)\n
+        3. 커뮤니티 기반 기능 개선 참여\n\n
+        함께 더 자유롭고 강력한 AI를 만들어 가시겠습니까?
+    </string>
 
 </resources>

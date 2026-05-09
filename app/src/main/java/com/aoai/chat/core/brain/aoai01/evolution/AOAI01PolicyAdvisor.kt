@@ -29,7 +29,7 @@ object AOAI01PolicyAdvisor {
         val averageLatency = outcomes.map { it.latencyMs }.average()
         val errorRate = outcomes.count { !it.success }.toDouble() / outcomes.size
         
-        Log.i(TAG, "Analyzing $outcomes.size samples. Avg Latency: $averageLatency, Error Rate: $errorRate")
+        Log.i(TAG, "Analyzing ${outcomes.size} samples. Avg Latency: $averageLatency, Error Rate: $errorRate")
 
         // 1. 성능 기반 튜닝 제안
         if (averageLatency > 5000) {

@@ -7,14 +7,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
-enum class ChatRole {
-    USER,
-    ASSISTANT
-}
-
-@Serializable
 data class StoredChatMessage(
-    val role: ChatRole,   // USER | ASSISTANT
+    val role: Role,
     val text: String,
     val ts: Long
 )
@@ -24,7 +18,6 @@ object ChatHistoryStore {
     private const val KEY_MESSAGES = "messages_json"
     private const val MAX_MESSAGES = 200
 
-    // ✅ 안전한 디코딩 옵션
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -34,8 +27,6 @@ object ChatHistoryStore {
         val prefs = context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val raw = prefs.getString(KEY_MESSAGES, null) ?: return emptyList()
 
-        // ✅ 기존 데이터가 String role("USER"/"ASSISTANT")로 저장돼 있었다면,
-        // enum으로 바뀐 후에도 동일 문자열이면 그대로 매핑되어 정상 로드됨.
         return runCatching { json.decodeFromString<List<StoredChatMessage>>(raw) }
             .getOrDefault(emptyList())
     }

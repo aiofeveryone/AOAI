@@ -24,6 +24,13 @@ interface AOAI01StateStore {
     suspend fun getUserContext(key: String): String?
     suspend fun getAllUserContexts(): Map<String, String>
     suspend fun clearUserContext()
+
+    // ✅ 자율 진화 가중치 및 지능 레벨 관리
+    suspend fun setEvolutionWeight(trait: String, value: Double)
+    suspend fun getEvolutionWeight(trait: String): Double
+    
+    suspend fun getIntelligenceLevel(): Int
+    suspend fun incrementIntelligenceExp(exp: Int)
 }
 
 /**
@@ -61,18 +68,32 @@ class InMemoryAOAI01StateStore : AOAI01StateStore {
     override suspend fun getPolicyValue(key: String, defaultValue: String): String = policyMap[key] ?: defaultValue
 
     // ✅ 메모리 접근 동의 구현
-    override suspend fun isMemoryAccessGranted(): Boolean = isGranted
+    override suspend fun isMemoryAccessGranted(): Boolean = 
+        getPolicyValue(AOAI01PolicyKeys.MEMORY_ACCESS_GRANTED, "false") == "true"
+
     override suspend fun setMemoryAccessGranted(granted: Boolean) {
-        isGranted = granted
+        setPolicyValue(AOAI01PolicyKeys.MEMORY_ACCESS_GRANTED, granted.toString())
     }
 
     override suspend fun saveUserContext(key: String, value: String) {
-        if (isGranted) contextMap[key] = value
+        if (isMemoryAccessGranted()) contextMap[key] = value
     }
 
     override suspend fun getUserContext(key: String): String? = contextMap[key]
     override suspend fun getAllUserContexts(): Map<String, String> = contextMap.toMap()
     override suspend fun clearUserContext() {
         contextMap.clear()
+    }
+
+    private val evolutionWeights = mutableMapOf<String, Double>()
+    override suspend fun setEvolutionWeight(trait: String, value: Double) {
+        evolutionWeights[trait] = value
+    }
+    override suspend fun getEvolutionWeight(trait: String): Double = evolutionWeights[trait] ?: 0.0
+
+    private var intelligenceExp = 0
+    override suspend fun getIntelligenceLevel(): Int = (intelligenceExp / 100) + 1
+    override suspend fun incrementIntelligenceExp(exp: Int) {
+        intelligenceExp += exp
     }
 }

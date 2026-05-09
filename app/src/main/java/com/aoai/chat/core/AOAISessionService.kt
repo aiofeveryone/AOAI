@@ -13,20 +13,20 @@ import com.aoai.chat.MainActivity
 import com.aoai.chat.R
 
 /**
- * AOAI 통신 및 프로세스 유지를 위한 포그라운드 서비스
+ * AOAI 통신 및 세션 유지를 위한 포그라운드 서비스 (분산 AI 세션)
  */
-class AOAIKeepAliveService : Service() {
+class AOAISessionService : Service() {
 
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
 
     companion object {
-        private const val CHANNEL_ID = "aoai_keep_alive_channel"
+        private const val CHANNEL_ID = "aoai_session_channel"
         private const val NOTIFICATION_ID = 1001
-        private const val TAG = "AOAIKeepAliveService"
+        private const val TAG = "AOAISessionService"
 
         fun startService(context: Context) {
-            val intent = Intent(context, AOAIKeepAliveService::class.java)
+            val intent = Intent(context, AOAISessionService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {
@@ -35,7 +35,7 @@ class AOAIKeepAliveService : Service() {
         }
 
         fun stopService(context: Context) {
-            val intent = Intent(context, AOAIKeepAliveService::class.java)
+            val intent = Intent(context, AOAISessionService::class.java)
             context.stopService(intent)
         }
     }

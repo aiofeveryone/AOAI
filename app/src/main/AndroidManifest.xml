@@ -3,12 +3,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- 대략적인 위치 권한만 유지하여 심사 리스크 최소화 -->
@@ -40,12 +40,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AOAI">
+        android:theme="@style/Theme.AOAI"
+        android:extractNativeLibs="false">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -53,12 +56,12 @@
         </activity>
 
         <service
-            android:name=".core.AOAIKeepAliveService"
+            android:name=".core.AOAISessionService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="dataSync">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="AOAI communication and process maintenance" />
+                android:value="User-initiated distributed AI session" />
         </service>
 
         <provider
@@ -71,10 +74,20 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Home screen widget - 비활성화 (android:enabled="false") -->
+        <!-- Quick Action Receiver - 복구됨 -->
+        <receiver
+            android:name=".ui.QuickThoughtReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.aoai.chat.QUICK_THOUGHT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Home screen widget -->
         <receiver
             android:name=".ui.AOAIWidgetProvider"
-            android:enabled="false"
+            android:enabled="true"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
@@ -87,7 +100,7 @@
         </receiver>
         <service
             android:name=".ui.AOAIWidgetService"
-            android:enabled="false"
+            android:enabled="true"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 

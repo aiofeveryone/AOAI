@@ -4,10 +4,12 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import com.aoai.chat.R
 import com.aoai.chat.core.brain.aoai01.evolution.*
 import com.aoai.chat.core.brain.aoai01.knowledge.*
-import com.aoai.chat.core.brain.aoai01.lifecore.AOAI01LifeSystem
-import com.aoai.chat.core.brain.aoai01.lifecore.LifeStatus
+import com.aoai.chat.core.brain.aoai01.lifecore.*
 import com.aoai.chat.core.brain.aoai01.providers.GeminiProvider
 import com.aoai.chat.data.*
 import com.aoai.chat.ui.NetworkStatus
@@ -24,6 +26,7 @@ import kotlin.system.measureTimeMillis
 
 /**
  * [aoai01 진화형 에이전트]
+ * 시스템의 전체적인 흐름을 제어하고 UI 상태를 관리합니다.
  */
 class AOAI01Agent(
     private val store: AOAI01StateStore,
@@ -55,12 +58,40 @@ class AOAI01Agent(
         executor = AOAI01PlanExecutor(appCtx, this, phoneServerProvider, localProvider, geminiProvider)
         AOAI01AdaptiveCore.initialize(appCtx)
         
-        // 초기 로드: 저장된 히스토리가 있다면 UI에 반영
+        // 시스템 업데이트 체크
+        scope.launch {
+            try {
+                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    appCtx.packageManager.getPackageInfo(appCtx.packageName, PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    appCtx.packageManager.getPackageInfo(appCtx.packageName, 0)
+                }
+                
+                val currentVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode.toInt()
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode
+                }
+
+                Log.d("AOAI01", "Checking for system upgrade... current version: $currentVersionCode")
+                val updateInfo = AOAI01UpdateManager.checkNewVersion(currentVersionCode)
+                if (updateInfo != null) {
+                    val prompt = AOAI01UpdateManager.getUpdatePrompt(updateInfo)
+                    addSystemMessage(prompt)
+                }
+            } catch (e: Exception) {
+                Log.e("AOAI01", "Failed to check for updates", e)
+            }
+        }
+
+        // 초기 로드: 저장된 히스토리 반영
         val saved = ChatHistoryStore.load(appCtx)
         if (saved.isNotEmpty() && _uiState.value.messages.isEmpty()) {
             val converted = saved.map { 
                 ChatMessage(
-                    role = if (it.role == ChatRole.USER) Role.USER else Role.ASSISTANT,
+                    role = it.role,
                     text = it.text,
                     state = MsgState.NORMAL
                 )
@@ -68,7 +99,7 @@ class AOAI01Agent(
             _uiState.update { it.copy(messages = converted) }
         }
 
-        // ✅ 주기적 헬스체크 및 위젯 업데이트
+        // 주기적 헬스체크 및 위젯 업데이트
         periodicJob?.cancel()
         periodicJob = scope.launch {
             while(isActive) {
@@ -76,19 +107,27 @@ class AOAI01Agent(
                 lifeSystem.vitality.cosmicHeal()
                 notifyWidgetUpdate()
                 
-                // 앱 사용이 없어도 통신 상태 유지 (Keep-alive 또는 정기적 체크)
+                // 패널티 자연 감소 적용
+                learner.decayPenalties()
+
+                // ✅ 주기적 기술 흡수 스캔
+                appContext?.let { AOAI01TechnoAbsorber.absorb(it) }
+
+                // ✅ 생존 본능 매니페스트 (Survival Instinct)
+                AOAI01SurvivalInstinct.manifest(lifeSystem, store)
+                
                 checkAndReconnectNetwork()
             }
         }
 
-        // ✅ 실시간 네트워크 모니터링 및 자동 복구
+        // 실시간 네트워크 모니터링
         networkMonitorJob?.cancel()
         networkMonitorJob = scope.launch {
             NetworkStatus.observeNetworkState(appCtx).collect { info ->
                 _networkState.value = info
                 if (!info.isOnline) {
-                    Log.w("AOAI01", "Network lost. Attempting auto-optimization...")
-                    checkAndReconnectNetwork()
+                    Log.w("AOAI01", "Network lost. Switching to Local optimization and initiating repair.")
+                    appContext?.let { NetworkStatus.repairNetwork(it) }
                 }
             }
         }
@@ -99,10 +138,9 @@ class AOAI01Agent(
         val currentInfo = NetworkStatus.getNetworkState(ctx)
         _networkState.value = currentInfo
         
+        // ✅ 정기적으로 네트워크 상태를 체크하고, 문제가 있다면 자동 복구 시도
         if (!currentInfo.isOnline) {
-            Log.i("AOAI01", "Attempting to find optimal connection...")
-            // 시스템 레벨의 네트워크 변경은 Android OS 정책상 제약이 있으나,
-            // 에이전트 내부적으로 통신 모드(Local/Server/Backup)를 최적화하여 대응하도록 설계됨
+            NetworkStatus.repairNetwork(ctx)
         }
     }
 
@@ -127,7 +165,13 @@ class AOAI01Agent(
     }
 
     fun sendWithImage(text: String, imageUri: Uri) {
-        scope.launch { send(imagePrompt = "사용자가 이미지를 첨부했습니다. '$text' 라는 메시지와 함께요. 이미지를 분석하고 흥미로운 점을 찾아 먼저 질문하거나 의견을 말해주세요.", imageUri = imageUri) }
+        scope.launch { 
+            send(
+                userText = text, 
+                imageUri = imageUri, 
+                imagePrompt = "사용자가 이미지를 첨부했습니다. '$text' 라는 메시지와 함께요. 이미지를 분석하고 흥미로운 점을 찾아 먼저 질문하거나 의견을 말해주세요."
+            ) 
+        }
     }
 
     suspend fun send(
@@ -145,9 +189,10 @@ class AOAI01Agent(
         val input = finalUserText.trim()
         if (input.isBlank() && imageUri == null) return@withLock
         
+        // 동의 처리
         if (input.contains("동의해") || input.contains("허락해") || input.contains("그래 기억해줘")) {
             store.setMemoryAccessGranted(true)
-            addSystemMessage("기억 저장 기능이 활성화되었습니다. 이제 우리의 대화가 aoai01의 진화에 기록됩니다.")
+            addSystemMessage(ctx.getString(R.string.memory_granted_msg))
         }
 
         activeJob?.cancelAndJoin()
@@ -163,7 +208,7 @@ class AOAI01Agent(
             .joinToString("\n") { "${if (it.role == Role.USER) "USER" else "ASSISTANT"}: ${it.text}" }
 
         updateMessages { it + 
-            ChatMessage(role = Role.USER, text = if (imagePrompt != null) "[이미지 분석 요청]" else input, mediaUri = imageUri, isHidden = isHidden) + 
+            ChatMessage(role = Role.USER, text = if (imagePrompt != null) ctx.getString(R.string.image_analysis_request_label) else input, mediaUri = imageUri, isHidden = isHidden) + 
             ChatMessage(role = Role.ASSISTANT, text = "…", state = MsgState.LOADING, id = loadingId) 
         }
 
@@ -176,10 +221,20 @@ class AOAI01Agent(
 
                 val status = lifeSystem.getStatus()
                 val currentTime = getCurrentKstTime()
+                
+                // ✅ 흡수된 최신 기술 지능 로드
+                val absorbedKnowledge = AOAI01TechnoAbsorber.getAbsorbedPrompt(ctx)
+                
+                // 정책 결정 (Policy 사용)
+                val inputModel = AOAI01Input(userText = input, historyText = savedContext, mediaUri = imageUri)
+                val route = policy.decideRoute(inputModel)
+                
                 val finalPrompt = StringBuilder().apply {
+                    append(ctx.getString(R.string.system_identity_prompt)).append("\n\n")
                     if (recentHistory.isNotBlank()) append("이전 대화:\n$recentHistory\n\n")
-                    append("[시스템 정보: 현재 시각(KST) $currentTime, 기분=$status, 배터리=${power.batteryPct}%]\n")
-                    append("사용자 입력: $input")
+                    if (absorbedKnowledge.isNotBlank()) append("[최신 기술 흡수 데이터]\n$absorbedKnowledge\n\n")
+                    append(ctx.getString(R.string.system_info_format, currentTime, status, power.batteryPct, route)).append("\n")
+                    append(ctx.getString(R.string.user_input_label, input))
                 }.toString()
 
                 val currentNetInfo = _networkState.value
@@ -191,29 +246,74 @@ class AOAI01Agent(
                     deviceGrade = "S"
                 )
 
+                // Planner를 통해 계획 수립
                 val plan = currentPlanner.makePlan(aoaiContext)
                 
                 var responseText: String
                 var planOutcome: PlanOutcome
+                
+                // ✅ 강화된 실행 로직: 실패 시 예외 처리 및 폴백 시도
                 val latency = measureTimeMillis {
-                    val (resp, outcome) = currentExecutor.execute(aoaiContext, plan, loadingId, mediaUri = imageUri)
-                    responseText = resp
-                    planOutcome = outcome
+                    val result = try {
+                        currentExecutor.execute(aoaiContext, plan, loadingId, mediaUri = imageUri)
+                    } catch (e: Exception) {
+                        Log.e("AOAI01", "Primary execution failed, attempting fallback", e)
+                        // 임시 실패 상태 객체 생성
+                        PlanOutcome(
+                            timestamp = System.currentTimeMillis(),
+                            policyVersion = plan.policyVersion,
+                            deviceGrade = aoaiContext.deviceGrade,
+                            platformType = aoaiContext.platformType.name,
+                            usedStrategy = plan.strategy,
+                            modelName = "error",
+                            latencyMs = 0,
+                            success = false,
+                            errorCode = e.message
+                        ).let { ctx.getString(R.string.error_prefix, e.message ?: "unknown") to it }
+                    }
+                    
+                    responseText = result.first
+                    planOutcome = result.second
+                    
+                    // ✅ 폴백 로직: 응답이 실패했거나 비어있을 경우 Gemini로 긴급 전환
+                    if (!planOutcome.success || responseText.isBlank()) {
+                        Log.w("AOAI01", "Primary provider failed. Falling back to Gemini.")
+                        val fallbackResult = geminiProvider.generate(finalPrompt, imageUri, emptyMap())
+                        if (fallbackResult.ok) {
+                            responseText = fallbackResult.text
+                            planOutcome = planOutcome.copy(
+                                success = true, 
+                                modelName = AOAI01Providers.GEMINI_BACKUP,
+                                fallbackReason = planOutcome.errorCode ?: ctx.getString(R.string.fallback_reason_primary_failed)
+                            )
+                        }
+                    }
                 }
 
                 val report = AOAI01Review.review(
-                    AOAI01Input(input, historyText = savedContext, mediaUri = imageUri), 
+                    appContext!!,
+                    inputModel, 
                     responseText, 
-                    AOAI01Route.LOCAL_ONLY,
-                    planOutcome.modelName ?: "unknown", 
+                    route,
+                    planOutcome.modelName ?: AOAI01Providers.LOCAL, 
                     latency
                 )
-                learner.learn(planOutcome.modelName ?: "unknown", report)
+
+                // ✅ 자가 진단 및 처방 실행 (Treatment)
+                AOAI01Treatment.diagnoseAndTreat(report, lifeSystem, store)
+
+                learner.learn(planOutcome.modelName ?: AOAI01Providers.LOCAL, report)
+                
+                // Adaptive Core 최적화 트리거
+                AOAI01AdaptiveCore.optimizeSelf(report)
 
                 var finalText = responseText
                 finalText = AOAI01CorePhilosophy.applyPhilosophy(input, finalText, store.isMemoryAccessGranted())
                 finalText = AOAI01CorePhilosophy.adjustToneByLifeStatus(finalText, lifeSystem.getStatus())
                 finalText = AOAI01MasterGuardian.protectAndExecute(input, finalText, userEmail)
+
+                // ✅ 생존 상태에 따른 응답 변조
+                finalText = AOAI01SurvivalInstinct.modulateResponseForSurvival(finalText, lifeSystem.getStatus())
 
                 revealAnswerGradually(loadingId, finalText)
                 
@@ -229,16 +329,11 @@ class AOAI01Agent(
                 if (e is CancellationException) {
                     val currentMsg = _uiState.value.messages.find { it.id == loadingId }
                     val currentText = currentMsg?.text ?: ""
-                    
-                    val finalText = if (currentText == "…" || currentText.isBlank()) {
-                        "대화가 중단되었습니다."
-                    } else {
-                        currentText
-                    }
+                    val finalText = if (currentText == "…" || currentText.isBlank()) ctx.getString(R.string.chat_stopped) else currentText
                     updateLiveMessage(loadingId, finalText, isFinal = true)
                 } else {
                     Log.e("AOAI01", "Send failed", e)
-                    updateLiveMessage(loadingId, "오류 발생: ${e.message}", isFinal = true)
+                    updateLiveMessage(loadingId, ctx.getString(R.string.error_prefix, e.message ?: "unknown"), isFinal = true)
                     lifeSystem.vitality.update(-2.0)
                 }
                 persistHistory()
@@ -252,13 +347,11 @@ class AOAI01Agent(
     private suspend fun revealAnswerGradually(msgId: String, fullText: String) {
         val stringBuilder = StringBuilder()
         val chunks = fullText.chunked(2) 
-        
         for (chunk in chunks) {
             stringBuilder.append(chunk)
             updateLiveMessage(msgId, stringBuilder.toString(), isFinal = false)
             delay(30) 
         }
-        
         updateLiveMessage(msgId, fullText, isFinal = true)
     }
 
@@ -298,7 +391,7 @@ class AOAI01Agent(
             .filter { it.state == MsgState.NORMAL && !it.isHidden }
             .map { 
                 StoredChatMessage(
-                    role = if (it.role == Role.USER) ChatRole.USER else ChatRole.ASSISTANT,
+                    role = it.role,
                     text = it.text,
                     ts = System.currentTimeMillis()
                 )

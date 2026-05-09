@@ -1,36 +1,32 @@
 package com.aoai.chat.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 private val AOAIColorScheme = lightColorScheme(
-    primary = Color(0xFF6A4FB3),
+    primary = Color(0xFF1A1A1A), // 깔끔한 블랙/다크 그레이
     onPrimary = Color.White,
 
-    // 보조색(필수급)
-    secondary = Color(0xFF5A46A0),
+    secondary = Color(0xFF6200EE),
     onSecondary = Color.White,
 
-    // 배경/서피스
-    background = Color.White,
-    onBackground = Color.Black,
+    background = Color(0xFFFAFAFA), // 매우 밝은 그레이 배경
+    onBackground = Color(0xFF1A1A1A),
 
     surface = Color.White,
-    onSurface = Color.Black,
+    onSurface = Color(0xFF1A1A1A),
 
-    surfaceVariant = Color(0xFFF2F2F2),
-    onSurfaceVariant = Color(0xFF2B2B2B),
+    surfaceVariant = Color(0xFFF5F5F5), // 더 연한 버블 색상
+    onSurfaceVariant = Color(0xFF424242),
 
-    // UI 구성요소 기본색(필수급)
-    outline = Color(0xFFCCCCCC),
+    outline = Color(0xFFE0E0E0),
+    outlineVariant = Color(0xFFEEEEEE),
 
-    // 에러 처리(필수급)
-    error = Color(0xFFB3261E),
-    onError = Color.White,
-
-    // M3 tonal/elevation tint
-    surfaceTint = Color(0xFF6A4FB3)
+    error = Color(0xFFBA1A1A),
+    onError = Color.White
 )
 
 @Composable
@@ -40,6 +36,11 @@ fun AOAITheme(
     MaterialTheme(
         colorScheme = AOAIColorScheme,
         typography = Typography(),
+        shapes = Shapes(
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(24.dp)
+        ),
         content = content
     )
 }

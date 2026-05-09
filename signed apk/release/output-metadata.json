@@ -4,15 +4,15 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.aoai.chat",
+  "applicationId": "com.aoai.chat.ai",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 109,
-      "versionName": "1.0.109",
+      "versionCode": 122,
+      "versionName": "1.0.122",
       "outputFile": "app-release.apk"
     }
   ],
@@ -33,5 +33,5 @@
       ]
     }
   ],
-  "minSdkVersionForDexing": 26
+  "minSdkVersionForDexing": 24
 }

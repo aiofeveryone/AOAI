@@ -93,6 +93,39 @@ object NetworkStatus {
             NetworkStateInfo(isOnline = false, description = "오류 발생")
         }
     }
+
+    /**
+     * ✅ 자율 네트워크 복구 로직 (Autonomous Network Recovery)
+     * 네트워크가 끊겼을 때 시스템에 인터넷 연결을 명시적으로 재요청합니다.
+     */
+    fun repairNetwork(context: Context) {
+        try {
+            Log.i("NetworkStatus", "Initiating autonomous network repair...")
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            
+            // 1. 인터넷 연결이 가능한 네트워크를 명시적으로 요청 (시스템 유도)
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                .build()
+
+            cm.requestNetwork(request, object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    Log.i("NetworkStatus", "Network repair successful: ${network.networkHandle} is now available.")
+                    cm.bindProcessToNetwork(network) // 현재 프로세스를 복구된 네트워크에 바인딩
+                }
+            })
+            
+            // 2. 강제 상태 업데이트 트리거 (실제로 연결이 안 되어있더라도 시스템 스캔 유도)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm.reportNetworkConnectivity(cm.activeNetwork, false)
+                cm.reportNetworkConnectivity(cm.activeNetwork, true)
+            }
+        } catch (e: Exception) {
+            Log.e("NetworkStatus", "Network repair failed", e)
+        }
+    }
 }
 
 @Composable

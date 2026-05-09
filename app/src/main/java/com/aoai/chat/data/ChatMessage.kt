@@ -1,8 +1,10 @@
 package com.aoai.chat.data
 
 import android.net.Uri
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
+@Serializable
 enum class Role { USER, ASSISTANT }
 
 enum class MsgState {
@@ -25,6 +27,5 @@ data class ChatMessage(
     val state: MsgState = MsgState.NORMAL,
     val retryUserText: String? = null,
     val isHidden: Boolean = false, // ✅ 시스템 내부용 메시지 (UI에 표시 안 함)
-    @Deprecated("Use mediaUri and mediaType")
-    val imageUri: Uri? = null
+    val timestamp: Long = System.currentTimeMillis()
 )

@@ -1,15 +1,40 @@
 # AOAI
-AI of everyone
 
-## Modules
-- Android app
-노드들이 서로 직접 모델을 업데이트하고
-전 세계 여러 참여자가 직접 GPU·컴퓨팅 자원을 분산 참여하여 AI를 훈련하는 구조
-이론적으로는 전통적인 대형 서버 없이도 AI 모델을 발전시키는 방향성을 제시
-AI를 단일 기업이나 기관만 소유하지 않고
-누구나 참여하고
-누구나 사용할 수 있도록
-AI 모델 및 자원을 공동으로 만들고 공유하는 것
-공정한 AI 생태계
-사용자 중심 AI 발전
-자원, 데이터, 모델 공유를 통한 민주적 기술 발전
+**AI of Everyone**
+
+AOAI is an open-source distributed AI platform powered by community collaboration.
+
+## Vision
+
+AI should belong to everyone. Not owned by one company, built together by everyone.
+
+## Features
+
+* **Android AI Client**: A native Android client for interacting with various AI models.
+* **Local AI Models**: Support for running and optimizing AI models locally on the device.
+* **Community-Driven**: Built for and by the community.
+* **Distributed AI Networking**: Leveraging decentralized protocols for AI tasks.
+* **WebRTC Communication**: P2P communication for distributed intelligence.
+* **Offline AI Support**: Intelligence that works even without a central server.
+
+## Roadmap
+
+* [ ] **Distributed Inference**: Splitting AI tasks across multiple nodes.
+* [ ] **P2P Node Networking**: Robust peer discovery and communication.
+* [ ] **Federated Learning**: Privacy-preserving collaborative model training.
+* [ ] **Local Model Runtime**: Optimized execution of LLMs on mobile hardware.
+* [ ] **Community AI Ecosystem**: A marketplace for open models and prompts.
+
+## Contributing
+
+Everyone can contribute! We welcome:
+* **Developers**: Kotlin, Python, and C++ experts.
+* **Designers**: Improving the UI/UX of distributed intelligence.
+* **Translators**: Making AOAI accessible to everyone globally.
+* **Testers**: Ensuring reliability across diverse devices.
+
+Check out our [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+
+## License
+
+AOAI is released under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.

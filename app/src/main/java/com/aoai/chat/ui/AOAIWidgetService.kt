@@ -6,7 +6,7 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.aoai.chat.R
 import com.aoai.chat.data.ChatHistoryStore
-import com.aoai.chat.data.ChatRole
+import com.aoai.chat.data.Role
 import com.aoai.chat.data.StoredChatMessage
 
 class AOAIWidgetService : RemoteViewsService() {
@@ -33,7 +33,7 @@ class AOAIWidgetFactory(private val context: Context) : RemoteViewsService.Remot
         val views = RemoteViews(context.packageName, R.layout.aoai_widget_item)
         val msg = messages[position]
         
-        val prefix = if (msg.role == ChatRole.USER) "ME: " else "AI: "
+        val prefix = if (msg.role == Role.USER) "ME: " else "AI: "
         views.setTextViewText(R.id.widget_item_text, prefix + msg.text)
         
         // 아이템 클릭 시 앱 실행을 위한 FillInIntent 설정 (필요시)

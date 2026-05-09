@@ -20,7 +20,6 @@ object PermissionManager {
      */
     fun getRequiredPermissions(): Array<String> {
         val permissions = mutableListOf(
-            Manifest.permission.READ_PHONE_STATE, // 전화
             Manifest.permission.RECORD_AUDIO,     // 음성(마이크)
             Manifest.permission.CAMERA            // 카메라
         )

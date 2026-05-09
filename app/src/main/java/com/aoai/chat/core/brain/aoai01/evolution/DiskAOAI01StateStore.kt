@@ -140,4 +140,29 @@ class DiskAOAI01StateStore(context: Context) : AOAI01StateStore {
             save()
         }
     }
+
+    // ✅ 자율 진화 가중치 및 지능 레벨 관리 (Evolutionary Persistence)
+    override suspend fun setEvolutionWeight(trait: String, value: Double) {
+        withContext(Dispatchers.IO) {
+            data.put("evo_weight_$trait", value)
+            save()
+        }
+    }
+
+    override suspend fun getEvolutionWeight(trait: String): Double = withContext(Dispatchers.IO) {
+        data.optDouble("evo_weight_$trait", 0.0)
+    }
+
+    override suspend fun getIntelligenceLevel(): Int = withContext(Dispatchers.IO) {
+        val exp = data.optInt("intelligence_exp", 0)
+        (exp / 100) + 1
+    }
+
+    override suspend fun incrementIntelligenceExp(exp: Int) {
+        withContext(Dispatchers.IO) {
+            val currentExp = data.optInt("intelligence_exp", 0)
+            data.put("intelligence_exp", currentExp + exp)
+            save()
+        }
+    }
 }

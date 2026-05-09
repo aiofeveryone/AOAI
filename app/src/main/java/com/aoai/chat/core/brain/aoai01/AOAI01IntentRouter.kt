@@ -19,20 +19,23 @@ object AOAI01IntentRouter {
                              t.contains("설정해") || t.contains("예약") ||
                              t.contains("알려줘") && (t.contains("내일") || t.contains("오늘"))
 
-        // 3. 의도(Intent) 판별 및 매핑
+        // 3. 의도(Intent) 판별 및 매핑 (지능 확장)
         val type = when {
+            t.contains("진화") || t.contains("upgrade") || t.contains("evolve") -> IntentType.INTERNAL_SECURITY // 자가 진단
+            t.contains("네트워크") || t.contains("연결") || t.contains("wifi") -> IntentType.SETTINGS
             isActionRequest -> IntentType.ACTION_REQUEST
             t.contains("code") || t.contains("코딩") || t.contains("java") || t.contains("python") -> IntentType.CODE
             t.contains("번역") || t.contains("translate") -> IntentType.TRANSLATE
-            t.contains("요약") || t.contains("summarize") -> IntentType.SUMMARIZE
-            t.contains("해결") || t.contains("문제") -> IntentType.TROUBLESHOOT
+            t.contains("요약") || t.contains("summarize") || t.contains("정리") -> IntentType.SUMMARIZE
+            t.contains("해결") || t.contains("문제") || t.contains("고장") -> IntentType.TROUBLESHOOT
             else -> IntentType.CHAT
         }
 
-        // 4. 난이도(Complexity) 결정
+        // 4. 난이도(Complexity) 결정 (더 정밀한 분석)
         val complexity = when {
-            type == IntentType.CODE || type == IntentType.TROUBLESHOOT || type == IntentType.ACTION_REQUEST -> Complexity.HIGH
-            isDeepAnalysisNeeded -> Complexity.MEDIUM
+            type == IntentType.INTERNAL_SECURITY || type == IntentType.TROUBLESHOOT -> Complexity.EXTREME
+            type == IntentType.CODE || type == IntentType.ACTION_REQUEST -> Complexity.HIGH
+            isDeepAnalysisNeeded || type == IntentType.SUMMARIZE -> Complexity.MEDIUM
             else -> Complexity.LOW
         }
 
