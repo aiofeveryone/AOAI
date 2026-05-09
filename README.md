@@ -1,5 +1,9 @@
 # AOAI
 
+[![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)](LICENSE)
+[![Android](https://img.shields.io/badge/Platform-Android-blue)](https://developer.android.com/android)
+[![Distributed AI](https://img.shields.io/badge/AI-Distributed-orange)](#vision)
+
 **AI of Everyone**
 
 AOAI is an open-source distributed AI platform powered by community collaboration.
