@@ -11,10 +11,10 @@ android {
 
     defaultConfig {
         applicationId = "com.aoai.chat.ai" // ⚠️ Play Console에 등록된 ID와 일치하도록 수정됨
-        minSdk = 24 // 18,777개 기기 지원을 위해 24로 하향
+        minSdk = 26
         targetSdk = 35
-        versionCode = 122
-        versionName = "1.0.122"
+        versionCode = 121
+        versionName = "1.2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
