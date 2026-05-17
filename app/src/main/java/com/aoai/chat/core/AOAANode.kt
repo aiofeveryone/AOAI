@@ -2,7 +2,7 @@ package com.aoai.chat.core
 
 import java.util.UUID
 
-data class AOAANode(
+data class AOAINode(
 
     val nodeId: String = UUID.randomUUID().toString(),
 
@@ -14,5 +14,5 @@ data class AOAANode(
 
     val supportsP2P: Boolean = true,
 
-    val lastLatencyMs: Long = 0L
+    val lastLatencyMs: Long = 0L,
 )

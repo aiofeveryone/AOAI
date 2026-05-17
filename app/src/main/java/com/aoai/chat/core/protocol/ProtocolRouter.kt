@@ -11,7 +11,7 @@ class ProtocolRouter(
     private val onHello: (raw: String) -> Unit = {},
     private val onPeerList: (raw: String) -> Unit = {},
     private val onPing: (raw: String) -> Unit = {},
-    private val onPong: (raw: String) -> Unit = {}
+    private val onPong: (raw: String) -> Unit = {},
 ) {
     fun handle(raw: String) {
         val env = ProtocolParser.parse(raw) ?: return

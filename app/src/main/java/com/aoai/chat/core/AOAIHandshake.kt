@@ -12,5 +12,5 @@ data class AOAIHandshake(
 
     val supportsP2P: Boolean,
 
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
 )

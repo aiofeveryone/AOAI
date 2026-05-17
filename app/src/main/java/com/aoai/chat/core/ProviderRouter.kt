@@ -1,7 +1,7 @@
 package com.aoai.chat.core
 
 class ProviderRouter(
-    private val providers: List<AOAIProvider>
+    private val providers: List<AOAIProvider>,
 ) {
 
     suspend fun route(input: String): String {

@@ -8,5 +8,5 @@ data class AOAISignal(
     val type: String,      // "offer" | "answer"
     val sdp: String,
     val fromNodeId: String = "unknown",
-    val sessionId: String? = null
+    val sessionId: String? = null,
 )

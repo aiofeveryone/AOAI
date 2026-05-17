@@ -8,7 +8,7 @@ enum class ServerMode {
 
 data class ServerEndpoint(
     val mode: ServerMode,
-    val customBaseUrl: String = "" // LAN/OVERLAY에서 사용
+    val customBaseUrl: String = "", // LAN/OVERLAY에서 사용
 ) {
     fun resolvedBaseUrl(defaultPort: Int = 8080): String {
         return when (mode) {

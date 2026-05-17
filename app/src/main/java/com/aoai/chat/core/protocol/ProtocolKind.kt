@@ -11,5 +11,5 @@ enum class ProtocolKind(val v: String) {
 
     INFER_REQUEST("infer_request"),
     INFER_RESPONSE("infer_response"),
-    INFER_FINAL("infer_final")
+    INFER_FINAL("infer_final"),
 }

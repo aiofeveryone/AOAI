@@ -4,7 +4,7 @@ import org.json.JSONObject
 
 data class ProtocolEnvelope(
     val kind: ProtocolKind,
-    val json: JSONObject
+    val json: JSONObject,
 )
 
 object ProtocolParser {

@@ -46,9 +46,9 @@ class AOAISessionService : Service() {
         startForeground(NOTIFICATION_ID, createNotification())
 
         // ✅ WakeLock 획득 (CPU 절전 방지)
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AOAI:KeepAliveWakeLock").apply {
-            acquire()
+            acquire(10 * 60 * 1000L /*10 minutes*/)
         }
 
         // ✅ WiFi Lock 획득 (WIFI 절전 방지)
@@ -78,7 +78,7 @@ class AOAISessionService : Service() {
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -92,16 +92,14 @@ class AOAISessionService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
-                "AOAI Keep Alive Channel",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "AOAI 통신 유지 서비스 알림"
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
+        val serviceChannel = NotificationChannel(
+            CHANNEL_ID,
+            "AOAI Keep Alive Channel",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "AOAI 통신 유지 서비스 알림"
         }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(serviceChannel)
     }
 }
