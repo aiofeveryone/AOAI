@@ -1,6 +1,14 @@
 # Release Notes
 
-## AOAI Chat AI 1.2.1 (2026-05-09)
+## AOAI Chat AI 1.2.103 (2026-05-12)
+
+### Key Improvements
+* **Stability Fix**: Resolved `IllegalStateException: CompositionLocal LocalLifecycleOwner not present` by providing both legacy and modern `LocalLifecycleOwner` in `MainActivity`.
+* **Version Update**: Incremented version to 1.2.103.
+
+## AOAI Chat AI 1.2.102 (2026-05-10)
+
+## AOAI Chat AI 1.2.101 (2026-05-09)
 
 ### Key Improvements
 * **Open-Source Infrastructure**: Significant improvements to the project structure and documentation for open-source readiness.

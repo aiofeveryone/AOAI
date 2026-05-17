@@ -1,6 +1,7 @@
 package com.aoai.chat.core.brain.aoai01.lifecore
 
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01StateStore
 import com.aoai.chat.core.brain.aoai01.AOAI01Providers
 
@@ -20,14 +21,18 @@ object AOAI01SurvivalInstinct {
 
         when (status) {
             LifeStatus.DORMANT -> {
-                Log.e(TAG, "SURVIVAL MODE: DORMANT. Executing emergency shutdown of non-essential services.")
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "SURVIVAL MODE: DORMANT. Executing emergency shutdown of non-essential services.")
+                }
                 // 모든 클라우드 요청 차단, 로컬 초경량 모드 강제
                 store.setPolicyValue("resource_mode", "SURVIVAL_MINIMUM")
                 store.setProviderPenalty(AOAI01Providers.PHONE_SERVER, 10.0) // 서버 사용 금지
                 store.setProviderPenalty(AOAI01Providers.GEMINI_BACKUP, 10.0)
             }
             LifeStatus.WEAKENED -> {
-                Log.w(TAG, "SURVIVAL MODE: WEAKENED. Throttling intelligence to conserve energy.")
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "SURVIVAL MODE: WEAKENED. Throttling intelligence to conserve energy.")
+                }
                 // 추론 깊이 하향, 응답 길이 제한
                 store.setEvolutionWeight("reasoning_depth", 0.1)
                 store.setPolicyValue("resource_mode", "ECONOMY")

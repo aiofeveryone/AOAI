@@ -2,6 +2,7 @@ package com.aoai.chat.core.brain.aoai01.providers
 
 import android.net.Uri
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01Provider
 import com.aoai.chat.core.brain.aoai01.ProviderResult
 import io.ktor.client.*
@@ -19,13 +20,10 @@ import kotlin.system.measureTimeMillis
 
 /**
  * aoai01의 최종 보조 두뇌: Google Gemini Provider
- * 메인 엔진(OpenAI/Cloudflare Proxy)이 응답하기 어려운 상황에서 최소한의 답변을 제공합니다.
- * 보안을 위해 실제 구현 시에는 API Key를 BuildConfig나 서버에서 관리하는 것이 좋습니다.
+ * 메인 엔진이 응답하기 어려운 상황에서 최소한의 답변을 제공합니다.
  */
-class GeminiProvider(
-    private val apiKey: String = "" // TODO: 여기에 Gemini API Key를 설정하거나 프록시를 통합니다.
-) : AOAI01Provider {
-
+class GeminiProvider : AOAI01Provider {
+    private val apiKey: String = BuildConfig.GEMINI_API_KEY
     override val name: String = "gemini_backup"
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -34,18 +32,20 @@ class GeminiProvider(
     }
 
     override suspend fun generate(prompt: String, mediaUri: Uri?, meta: Map<String, String>): ProviderResult = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank()) {
-            return@withContext ProviderResult(false, "Gemini API Key가 설정되지 않았습니다.", 0, "missing_key")
-        }
-
         var text = ""
         var ok = false
         var errorCode: String? = null
 
+        if (apiKey.isBlank()) {
+            if (BuildConfig.DEBUG) {
+                Log.d("GeminiProvider", "Gemini API Key not configured")
+            }
+            return@withContext ProviderResult(false, "API Key missing", 0, "no_api_key")
+        }
+
         val elapsed = measureTimeMillis {
             try {
                 // Gemini API 호출 (v1beta)
-                // TODO: Gemini 멀티모달 지원 시 mediaUri 처리 로직 추가
                 val response: GeminiResponse = client.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey") {
                     contentType(ContentType.Application.Json)
                     setBody(GeminiRequest(contents = listOf(Content(parts = listOf(Part(text = prompt))))))
@@ -59,7 +59,9 @@ class GeminiProvider(
                     errorCode = "empty_response"
                 }
             } catch (e: Exception) {
-                Log.e("GeminiProvider", "Fallback failed", e)
+                if (BuildConfig.DEBUG) {
+                    Log.e("GeminiProvider", "Fallback failed: ${e.message}", e)
+                }
                 errorCode = e.message
             }
         }
@@ -78,7 +80,11 @@ data class Content(val parts: List<Part>)
 data class Part(val text: String)
 
 @Serializable
-data class GeminiResponse(val candidates: List<Candidate>? = null)
+data class GeminiResponse(
+    val candidates: List<Candidate>? = null
+)
 
 @Serializable
-data class Candidate(val content: Content? = null)
+data class Candidate(
+    val content: Content? = null
+)

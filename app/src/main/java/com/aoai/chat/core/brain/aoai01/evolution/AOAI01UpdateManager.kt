@@ -44,6 +44,13 @@ object AOAI01UpdateManager {
     }
 
     @Serializable
+    data class VersionResponse(
+        val ok: Boolean = true,
+        val data: VersionInfo? = null,
+        val error: String? = null
+    )
+
+    @Serializable
     data class VersionInfo(
         val latestVersionCode: Int,
         val latestVersionName: String,
@@ -60,9 +67,10 @@ object AOAI01UpdateManager {
         try {
             Log.d(TAG, "Checking for new version... Current: $currentVersionCode")
             
-            val info: VersionInfo = client.get(UPDATE_CHECK_URL).body()
+            val response: VersionResponse = client.get(UPDATE_CHECK_URL).body()
+            val info = response.data
 
-            if (info.latestVersionCode > currentVersionCode) {
+            if (info != null && info.latestVersionCode > currentVersionCode) {
                 Log.i(TAG, "New version detected: ${info.latestVersionName}")
                 info
             } else {

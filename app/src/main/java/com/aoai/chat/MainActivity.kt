@@ -13,8 +13,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLifecycleOwner as UIPlatformLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.LocalLifecycleOwner as LifecycleOwnerLocal
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.aoai.chat.core.PermissionManager
 import com.aoai.chat.core.AOAISessionService
 import com.aoai.chat.ui.AOAIApp
@@ -39,6 +44,11 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
 
+        // ✅ ViewTree owners를 명시적으로 설정하여 FragmentActivity에서의 Compose 안정성 확보
+        window.decorView.setViewTreeLifecycleOwner(this)
+        window.decorView.setViewTreeViewModelStoreOwner(this)
+        window.decorView.setViewTreeSavedStateRegistryOwner(this)
+
         // ✅ 안전한 에이전트 참조 (초기화 전 접근 방지)
         val app = application as AOAIApplication
         if (!app.isAgentInitialized()) {
@@ -52,36 +62,41 @@ class MainActivity : FragmentActivity() {
         AOAISessionService.startService(this)
 
         setContent {
-            var showConsentDialog by remember { mutableStateOf(!PermissionManager.hasAllPermissions(this@MainActivity)) }
+            CompositionLocalProvider(
+                UIPlatformLifecycleOwner provides this,
+                LifecycleOwnerLocal provides this
+            ) {
+                var showConsentDialog by remember { mutableStateOf(!PermissionManager.hasAllPermissions(this@MainActivity)) }
 
-            AOAITheme {
-                if (showConsentDialog) {
-                    // ✅ 통합 권한 및 연산 참여 동의 다이얼로그 (오픈 프로젝트 버전)
-                    AlertDialog(
-                        onDismissRequest = { /* 필수 동의이므로 닫기 방지 가능 */ },
-                        title = { Text(stringResource(R.string.consent_dialog_title_open)) },
-                        text = {
-                            Text(stringResource(R.string.consent_dialog_body_open))
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showConsentDialog = false
-                                permissionLauncher.launch(PermissionManager.getRequiredPermissions())
-                            }) {
-                                Text(stringResource(R.string.consent_dialog_confirm))
+                AOAITheme {
+                    if (showConsentDialog) {
+                        // ✅ 통합 권한 및 연산 참여 동의 다이얼로그 (오픈 프로젝트 버전)
+                        AlertDialog(
+                            onDismissRequest = { /* 필수 동의이므로 닫기 방지 가능 */ },
+                            title = { Text(stringResource(R.string.consent_dialog_title_open)) },
+                            text = {
+                                Text(stringResource(R.string.consent_dialog_body_open))
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showConsentDialog = false
+                                    permissionLauncher.launch(PermissionManager.getRequiredPermissions())
+                                }) {
+                                    Text(stringResource(R.string.consent_dialog_confirm))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = {
+                                    finishAffinity()
+                                }) {
+                                    Text(stringResource(R.string.exit))
+                                }
                             }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                finishAffinity()
-                            }) {
-                                Text(stringResource(R.string.exit))
-                            }
-                        }
-                    )
+                        )
+                    }
+
+                    AOAIApp(aoai01)
                 }
-
-                AOAIApp(aoai01)
             }
         }
     }

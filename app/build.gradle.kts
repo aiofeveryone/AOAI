@@ -13,8 +13,8 @@ android {
         applicationId = "com.aoai.chat.ai" // ⚠️ Play Console에 등록된 ID와 일치하도록 수정됨
         minSdk = 26
         targetSdk = 35
-        versionCode = 121
-        versionName = "1.2.1"
+        versionCode = 12103
+        versionName = "1.2.103"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
@@ -41,9 +41,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "API_BASE_URL", "\"https://api.aiofeveryone.com\"")
+            buildConfigField("String", "GEMINI_API_KEY", "\"\"")
         }
         debug {
             isMinifyEnabled = false
+            buildConfigField("String", "API_BASE_URL", "\"https://api.aiofeveryone.com\"")
+            buildConfigField("String", "GEMINI_API_KEY", "\"\"")
         }
     }
 

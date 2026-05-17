@@ -1,6 +1,7 @@
 package com.aoai.chat.ai
 
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -18,12 +19,11 @@ import java.net.UnknownHostException
  * Cloudflare Worker 프록시로 OpenAI Chat Completions 요청을 보내는 Provider
  */
 class ServerPhoneProvider(
-    private val baseUrl: String = DEFAULT_BASE_URL,
+    private val baseUrl: String = BuildConfig.API_BASE_URL,
     private val model: String = DEFAULT_MODEL,
 ) {
 
     companion object {
-        private const val DEFAULT_BASE_URL = "https://api.aiofeveryone.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
 
         // ✅ 타임아웃 설정 더욱 강화 및 재시도 로직을 위한 설정

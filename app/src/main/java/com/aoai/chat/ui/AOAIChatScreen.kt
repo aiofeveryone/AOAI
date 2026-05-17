@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.aoai.chat.BuildConfig
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -119,12 +120,14 @@ fun AOAIChatScreen(
     // TTS 관련 설정
     var selectedLocale by remember { mutableStateOf(Locale.KOREAN) }
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
     var isSpeaking by remember { mutableStateOf(false) }
     val languageIdentifier = remember { LanguageIdentification.getClient() }
 
     DisposableEffect(Unit) {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
+                isTtsReady = true
                 tts?.language = selectedLocale
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
@@ -139,10 +142,18 @@ fun AOAIChatScreen(
                 })
             }
         }
-        onDispose { tts?.stop(); tts?.shutdown() }
+        onDispose { 
+            tts?.stop()
+            tts?.shutdown() 
+            isTtsReady = false
+        }
     }
 
-    LaunchedEffect(selectedLocale) { tts?.language = selectedLocale }
+    LaunchedEffect(selectedLocale, isTtsReady) { 
+        if (isTtsReady) {
+            tts?.language = selectedLocale 
+        }
+    }
 
     fun speakTargetMessage() {
         if (isSpeaking) { tts?.stop(); isSpeaking = false; return }
@@ -157,8 +168,12 @@ fun AOAIChatScreen(
                         selectedLocale = detectedLocale
                         tts?.language = detectedLocale
                     }
-                } catch (e: Exception) { Log.e("AOAI_TTS", "Language detection failed", e) }
-                
+                } catch (e: Exception) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d("AOAI_TTS", "Language detection failed: ${e.message}")
+                    }
+                }
+
                 tts?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, "AOAI_TTS")
             }
         } else { Toast.makeText(context, context.getString(R.string.no_content_to_read), Toast.LENGTH_SHORT).show() }
@@ -250,6 +265,7 @@ fun AOAIChatScreen(
 
         inputText = ""
         replyingTo = null
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress) // 전송 햅틱
         
         scope.launch { agent.send(input) }
     }
@@ -414,9 +430,11 @@ fun AOAIChatScreen(
     }
 
     Scaffold(
-        modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0), // 인셋 수동 제어
         topBar = {
             TopAppBar(
+                modifier = Modifier.statusBarsPadding(), // 상단바 영역 확보
                 navigationIcon = { IconButton(onClick = { showHistorySheet = true }) { Icon(Icons.Filled.History, null) } },
                 title = {
                     val summary = messages.lastOrNull { it.role == Role.USER && !it.isHidden }?.text ?: stringResource(R.string.new_conversation)
@@ -486,6 +504,9 @@ fun AOAIChatScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
+                .navigationBarsPadding()
+                .imePadding()
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {
@@ -512,11 +533,38 @@ fun AOAIChatScreen(
 
             if (isSending) { LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) }
 
-            SelectionContainer(modifier = Modifier.weight(1f).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            }) {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                SelectionContainer(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                }) {
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+                    if (messages.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillParentMaxSize()
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = stringResource(R.string.welcome_message),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = stringResource(R.string.welcome_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
                     items(messages, key = { it.id }) { msg ->
                         if (msg.isHidden) return@items
                         val isStatusMsg = msg.role == Role.ASSISTANT && (msg.text.contains("📡") || msg.text.contains("📶"))
@@ -545,28 +593,79 @@ fun AOAIChatScreen(
                                             onHorizontalDrag = { change, dragAmount -> change.consume(); scope.launch { offsetX.snapTo((offsetX.value + dragAmount).coerceIn(0f, 150f)) } }
                                         )
                                     }
-                                    .combinedClickable(onClick = { 
-                                        focusRequester.requestFocus()
-                                        keyboardController?.show()
-                                    }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }),
-                                color = bubbleColor, shape = MaterialTheme.shapes.medium, tonalElevation = 2.dp
+                                    .combinedClickable(
+                                        onClick = { 
+                                            focusRequester.requestFocus()
+                                            keyboardController?.show()
+                                        }, 
+                                        onLongClick = { 
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            val clip = android.content.ClipData.newPlainText("AOAI Message", msg.text)
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, context.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+                                        }
+                                    ),
+                                color = bubbleColor, shape = if (msg.role == Role.USER) {
+                                    RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp)
+                                } else {
+                                    RoundedCornerShape(16.dp, 16.dp, 16.dp, 2.dp)
+                                }, tonalElevation = 2.dp
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     if (msg.mediaUri != null) { AsyncImage(model = msg.mediaUri, contentDescription = null, modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 200.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Fit) }
                                     
                                     if (msg.state == MsgState.LOADING && msg.text == "…") {
-                                        val infiniteTransition = rememberInfiniteTransition(label = "dots")
-                                        val dotCount by infiniteTransition.animateValue(initialValue = 1, targetValue = 4, typeConverter = Int.VectorConverter, animationSpec = infiniteRepeatable(animation = keyframes { durationMillis = 1200; 1 at 0; 2 at 400; 3 at 800 }, repeatMode = RepeatMode.Restart), label = "dotCount")
-                                        Text(text = ".".repeat(dotCount), color = textColor, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                        // ... (dots animation)
+                                        Row(
+                                            modifier = Modifier.padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            val infiniteTransition = rememberInfiniteTransition(label = "dots")
+                                            repeat(3) { index ->
+                                                val alpha by infiniteTransition.animateFloat(
+                                                    initialValue = 0.2f,
+                                                    targetValue = 1f,
+                                                    animationSpec = infiniteRepeatable(
+                                                        animation = keyframes {
+                                                            durationMillis = 600
+                                                            0.2f at index * 150
+                                                            1f at index * 150 + 300
+                                                        },
+                                                        repeatMode = RepeatMode.Reverse
+                                                    ),
+                                                    label = "dot$index"
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(textColor.copy(alpha = alpha))
+                                                )
+                                            }
+                                        }
                                     } else {
                                         Text(text = msg.text, color = textColor, fontSize = (16 * fontSizeMultiplier).sp, lineHeight = (22 * fontSizeMultiplier).sp)
+                                        
+                                        // 시간 표시 추가
+                                        val timeText = remember(msg.timestamp) {
+                                            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(msg.timestamp))
+                                        }
+                                        Text(
+                                            text = timeText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = textColor.copy(alpha = 0.6f),
+                                            modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 }
+
             }
+        }
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { startSpeechToText() }) { Icon(Icons.Filled.Mic, null) }
@@ -589,7 +688,11 @@ fun AOAIChatScreen(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically, 
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
                 OutlinedTextField(
                     value = inputText, 
                     onValueChange = { 
@@ -603,6 +706,14 @@ fun AOAIChatScreen(
                     },
                     modifier = Modifier.weight(1f).focusRequester(focusRequester),
                     placeholder = { Text(stringResource(R.string.chat_placeholder)) },
+                    maxLines = 5, // 최대 5행까지 늘어남
+                    trailingIcon = {
+                        if (inputText.isNotEmpty()) {
+                            IconButton(onClick = { inputText = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear text", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    },
                     enabled = isOnline
                 )
                 Spacer(Modifier.width(8.dp))
@@ -616,16 +727,14 @@ fun AOAIChatScreen(
                         Icon(Icons.Filled.Stop, null, tint = MaterialTheme.colorScheme.onError) 
                     }
                 } else {
-                    val canSend = isOnline && (inputText.isNotEmpty() || replyingTo != null)
-                    IconButton(
-                        onClick = { onSend(inputText) }, 
-                        modifier = Modifier.size(48.dp), 
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isSending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-                        ), 
-                        enabled = canSend
-                    ) { 
-                        Icon(Icons.Filled.Send, null, tint = MaterialTheme.colorScheme.onPrimary) 
+                    if (isOnline && (inputText.isNotEmpty() || replyingTo != null)) {
+                        IconButton(
+                            onClick = { onSend(inputText) },
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = if (isSending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Filled.Send, null, tint = MaterialTheme.colorScheme.onPrimary)
+                        }
                     }
                 }
             }

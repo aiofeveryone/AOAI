@@ -37,10 +37,19 @@ object AOAI01AdaptivePolicyStore {
 
     private var currentRules: AdaptiveRules? = null
 
+    @Serializable
+    data class PolicyResponse(
+        val ok: Boolean = true,
+        val data: AdaptiveRules? = null,
+        val error: String? = null
+    )
+
     suspend fun syncRemotePolicy(context: Context) = withContext(Dispatchers.IO) {
         try {
             Log.i(TAG, "Fetching dynamic intelligence policy...")
-            val remoteRules: AdaptiveRules = client.get(POLICY_URL).body()
+            val response: PolicyResponse = client.get(POLICY_URL).body()
+            val remoteRules = response.data ?: throw Exception("Policy data is null")
+
             validateCompatibility(context, remoteRules)
             saveToLocalAtomic(context, remoteRules)
             currentRules = remoteRules

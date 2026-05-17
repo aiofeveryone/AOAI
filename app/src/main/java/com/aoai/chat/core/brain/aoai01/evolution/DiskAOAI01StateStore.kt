@@ -2,6 +2,7 @@ package com.aoai.chat.core.brain.aoai01.evolution
 
 import android.content.Context
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01StateStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,7 +33,9 @@ class DiskAOAI01StateStore(context: Context) : AOAI01StateStore {
                 }
                 memoryAccessGranted = data.optBoolean("memory_access_granted", false)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load brain state", e)
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "Failed to load brain state: ${e.message}")
+                }
             }
         }
     }
@@ -42,7 +45,9 @@ class DiskAOAI01StateStore(context: Context) : AOAI01StateStore {
             data.put("memory_access_granted", memoryAccessGranted)
             file.writeText(data.toString())
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save brain state", e)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Failed to save brain state: ${e.message}")
+            }
         }
     }
 

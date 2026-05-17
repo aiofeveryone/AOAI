@@ -85,6 +85,9 @@
     <string name="image_captured_label">[사진 촬영됨]</string>
     <string name="error_prefix">오류 발생: %1$s</string>
     <string name="detect_language">언어 자동 감지</string>
+    <string name="welcome_message">반가워요! AOAI입니다.</string>
+    <string name="welcome_subtitle">궁금한 것이 있나요? 아래에 질문을 남겨보세요.</string>
+    <string name="copied_to_clipboard">메시지가 복사되었습니다.</string>
 
     <!-- Agent System Messages -->
     <string name="memory_granted_msg">기억 저장 기능이 활성화되었습니다. 이제 우리의 대화가 AOAI의 진화에 기록됩니다.</string>

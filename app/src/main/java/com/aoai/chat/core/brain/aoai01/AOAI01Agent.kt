@@ -291,7 +291,7 @@ class AOAI01Agent(
                 }
 
                 val report = AOAI01Review.review(
-                    appContext!!,
+                    appContext ?: return@launch,
                     inputModel, 
                     responseText, 
                     route,

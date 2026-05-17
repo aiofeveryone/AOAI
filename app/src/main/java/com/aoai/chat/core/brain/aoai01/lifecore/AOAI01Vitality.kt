@@ -1,6 +1,7 @@
 package com.aoai.chat.core.brain.aoai01.lifecore
 
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01StateStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +45,9 @@ class AOAI01Vitality(private val store: AOAI01StateStore) {
         CoroutineScope(Dispatchers.IO).launch {
             store.setPolicyValue("life_energy", next.toString())
         }
-        Log.i(TAG, "aoai01 Vitality Sync: Current Energy $next")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "aoai01 Vitality Sync: Current Energy $next")
+        }
     }
 
     /**

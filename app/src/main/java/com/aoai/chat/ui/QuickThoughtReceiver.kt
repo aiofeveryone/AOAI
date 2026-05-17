@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.aoai.chat.BuildConfig
 
 /**
  * [AOAI Quick Thought Receiver]
@@ -12,8 +13,10 @@ import android.util.Log
 class QuickThoughtReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val text = intent.getStringExtra("thought_text")
-        Log.d("QuickThought", "Received quick thought: $text")
-        
+        if (BuildConfig.DEBUG) {
+            Log.d("QuickThought", "Received quick thought: $text")
+        }
+
         // 향후 구현: 백그라운드에서 에이전트에게 메시지 전달 로직 추가
     }
 }

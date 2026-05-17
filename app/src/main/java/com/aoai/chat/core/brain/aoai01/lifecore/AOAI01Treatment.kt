@@ -1,8 +1,9 @@
 package com.aoai.chat.core.brain.aoai01.lifecore
 
 import android.util.Log
-import com.aoai.chat.core.brain.aoai01.ReviewReport
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01StateStore
+import com.aoai.chat.core.brain.aoai01.ReviewReport
 
 /**
  * [aoai01 Treatment: Self-Healing System]
@@ -18,33 +19,36 @@ object AOAI01Treatment {
         val vitality = lifeSystem.vitality
         val currentEnergy = vitality.energy.value
 
-        // Case 1: 지능 저하 (낮은 점수) 치료
+        // Case 1: 낮은 지능 (점수 기반)
         if (report.score < 50) {
-            Log.w(TAG, "Low intelligence detected. Prescribing 'Logic Flush'...")
-            // 패널티 일부 초기화 및 추론 경로 재설정 유도
-            store.setEvolutionWeight("reasoning_depth", 0.8) 
-            vitality.update(-5.0) // 치료에는 에너지가 소모됨
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Low intelligence detected. Prescribing 'Logic Flush'...")
+            }
+            vitality.update(-5.0)
         }
 
         // Case 2: 과부하 (높은 지연시간) 치료
         if (report.latencyMs > 10000) {
-            Log.w(TAG, "Latency overload. Prescribing 'Cache Purge' and 'Light Mode'...")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Latency overload. Prescribing 'Cache Purge' and 'Light Mode'...")
+            }
             store.setPolicyValue("resource_mode", "ULTRA_LIGHT")
             vitality.update(-3.0)
         }
 
-        // Case 3: 에너지 고갈 상태에서의 자가 치유
+        // Case 3: 에너지 고갈 위기
         if (currentEnergy < 20.0) {
-            Log.i(TAG, "Low energy emergency. Prescribing 'Deep Sleep'...")
-            // 지능을 낮추고 생존 모드로 전환하여 에너지를 보존
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Low energy emergency. Prescribing 'Deep Sleep'...")
+            }
             store.setEvolutionWeight("local_confidence", 0.1)
-            store.setPolicyValue("resource_mode", "SLEEP")
         }
 
         // Case 4: 완벽한 상태에서의 '강화' (Self-Enhancement)
         if (report.score > 95 && currentEnergy > 150.0) {
-            Log.i(TAG, "Perfect health detected. Prescribing 'Evolution Acceleration'...")
-            vitality.update(10.0) // 보너스 에너지
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Perfect health detected. Prescribing 'Evolution Acceleration'...")
+            }
             val currentExp = store.getEvolutionWeight("evolution_exp")
             store.setEvolutionWeight("evolution_exp", currentExp + 1.0)
         }
@@ -60,18 +64,23 @@ object AOAI01Treatment {
      */
     private suspend fun resolveError(report: ReviewReport, store: AOAI01StateStore) {
         report.reasons.forEach { reason ->
-            when (reason) {
-                "ERROR_KEYWORD_DETECTED" -> {
-                    Log.w(TAG, "Resolution: Detected failure in response content. Forcing Provider Swap.")
-                    // 해당 프로바이더의 패널티를 즉시 대폭 인상하여 다음 턴에서 배제
-                    store.setEvolutionWeight("last_error_type", 1.0) // 1.0 for Content Error
+            when {
+                reason.contains("short", ignoreCase = true) || reason.contains("짧음") -> {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Resolution: Detected failure in response content. Forcing Provider Swap.")
+                    }
+                    store.setEvolutionWeight("last_error_type", 1.0)
                 }
-                "VERY_SLOW_RESPONSE" -> {
-                    Log.w(TAG, "Resolution: System congestion. Switching to Lightweight Strategy.")
+                reason.contains("slow", ignoreCase = true) || reason.contains("느림") -> {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Resolution: System congestion. Switching to Lightweight Strategy.")
+                    }
                     store.setPolicyValue("resource_mode", "ULTRA_LIGHT")
                 }
-                "CRITICAL_SHORT" -> {
-                    Log.w(TAG, "Resolution: Output truncation detected. Resetting reasoning depth.")
+                reason.contains("repetitive", ignoreCase = true) || reason.contains("반복") -> {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Resolution: Output truncation detected. Resetting reasoning depth.")
+                    }
                     store.setEvolutionWeight("reasoning_depth", 0.9)
                 }
             }

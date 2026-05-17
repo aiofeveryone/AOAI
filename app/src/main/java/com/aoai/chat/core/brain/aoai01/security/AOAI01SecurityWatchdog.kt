@@ -1,6 +1,7 @@
 package com.aoai.chat.core.brain.aoai01.security
 
 import android.util.Log
+import com.aoai.chat.BuildConfig
 import com.aoai.chat.core.brain.aoai01.AOAI01MasterGuardian
 
 /**
@@ -27,7 +28,9 @@ object AOAI01SecurityWatchdog {
         val isAbuseSuspected = ABUSE_KEYWORDS.any { userText.contains(it, ignoreCase = true) }
         
         return if (isAbuseSuspected) {
-            Log.w(TAG, "⚠️ ABUSE ATTEMPT DETECTED: $userText")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "⚠️ ABUSE ATTEMPT DETECTED: $userText")
+            }
             SecurityLevel.THREAT
         } else {
             SecurityLevel.SAFE

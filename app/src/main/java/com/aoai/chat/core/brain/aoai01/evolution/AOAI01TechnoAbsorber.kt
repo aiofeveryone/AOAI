@@ -29,6 +29,13 @@ object AOAI01TechnoAbsorber {
     }
 
     @Serializable
+    data class CapsuleResponse(
+        val ok: Boolean = true,
+        val data: List<TechCapsule> = emptyList(),
+        val error: String? = null
+    )
+
+    @Serializable
     data class TechCapsule(
         val id: String,
         val title: String,
@@ -49,7 +56,8 @@ object AOAI01TechnoAbsorber {
     suspend fun absorb(context: Context) = withContext(Dispatchers.IO) {
         try {
             Log.i(TAG, "Scanning for latest technology updates...")
-            val newCapsules: List<TechCapsule> = client.get(TECH_CAPSULE_URL).body()
+            val response: CapsuleResponse = client.get(TECH_CAPSULE_URL).body()
+            val newCapsules = response.data
             
             val current = loadAbsorbed(context)
             val updated = AbsorbedLibrary(
