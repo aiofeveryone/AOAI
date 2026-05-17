@@ -36,7 +36,7 @@ class AOAI01Agent(
     private val localProvider: AOAI01Provider? = null,
     private val phoneServerProvider: AOAI01Provider? = null,
     private val geminiProvider: AOAI01Provider = GeminiProvider(),
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope: CoroutineScope
 ) {
     private val _uiState = MutableStateFlow(AOAIChatUiState())
     val uiState: StateFlow<AOAIChatUiState> = _uiState

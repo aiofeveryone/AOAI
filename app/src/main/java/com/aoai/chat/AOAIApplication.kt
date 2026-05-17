@@ -10,8 +10,13 @@ import com.aoai.chat.core.brain.aoai01.persistence.RoomAOAI01StateStore
 import com.aoai.chat.core.brain.aoai01.providers.AOAI01LocalProvider
 import com.aoai.chat.core.brain.aoai01.providers.AOAI01PhoneServerAdapter
 import com.aoai.chat.core.brain.aoai01.providers.GeminiProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class AOAIApplication : Application() {
+
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     lateinit var aoai01: AOAI01Agent
         private set
@@ -33,7 +38,7 @@ class AOAIApplication : Application() {
 
     private fun initializeAgent() {
         val stateStore = RoomAOAI01StateStore(this)
-        val lifeSystem = AOAI01LifeSystem(stateStore)
+        val lifeSystem = AOAI01LifeSystem(stateStore, applicationScope)
         val learner = AOAI01Learner(stateStore)
         val policy = AOAI01Policy(stateStore)
 
@@ -47,7 +52,8 @@ class AOAIApplication : Application() {
             lifeSystem = lifeSystem,
             localProvider = local,
             phoneServerProvider = server,
-            geminiProvider = GeminiProvider()
+            geminiProvider = GeminiProvider(),
+            scope = applicationScope
         )
     }
 
@@ -65,7 +71,8 @@ class AOAIApplication : Application() {
                      store = stateStore,
                      policy = AOAI01Policy(stateStore),
                      learner = AOAI01Learner(stateStore),
-                     lifeSystem = AOAI01LifeSystem(stateStore)
+                     lifeSystem = AOAI01LifeSystem(stateStore, applicationScope),
+                     scope = applicationScope
                  )
              } catch (inner: Exception) {
                  // 이조차 안되면 앱을 유지하기 어려움

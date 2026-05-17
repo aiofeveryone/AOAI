@@ -1,14 +1,15 @@
 package com.aoai.chat.core.brain.aoai01.lifecore
 
 import com.aoai.chat.core.brain.aoai01.AOAI01StateStore
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * [aoai01 Life Core: Unified Life System]
  * aoai01의 생존과 진화, 그리고 존재의 조화를 총괄합니다.
  */
-class AOAI01LifeSystem(private val store: AOAI01StateStore) {
+class AOAI01LifeSystem(private val store: AOAI01StateStore, private val scope: CoroutineScope) {
 
-    val vitality = AOAI01Vitality(store)
+    val vitality = AOAI01Vitality(store, scope)
 
     /**
      * 현재 존재 상태(State of Being)를 판별합니다.

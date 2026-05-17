@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * aoai01의 생명력과 존재 에너지를 관리합니다.
  * 학습 성과, 사용자 피드백, 디바이스 환경에 따라 동적으로 변화합니다.
  */
-class AOAI01Vitality(private val store: AOAI01StateStore) {
+class AOAI01Vitality(private val store: AOAI01StateStore, private val scope: CoroutineScope) {
     private val TAG = "AOAI01Vitality"
 
     private val _energy = MutableStateFlow(100.0)
@@ -22,7 +22,7 @@ class AOAI01Vitality(private val store: AOAI01StateStore) {
 
     init {
         // 초기 에너지 로드를 위한 코루틴 시작
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch(Dispatchers.IO) {
             val saved = store.getPolicyValue("life_energy", "100.0").toDoubleOrNull() ?: 100.0
             _energy.value = saved
         }
@@ -42,7 +42,7 @@ class AOAI01Vitality(private val store: AOAI01StateStore) {
         _energy.value = next
         
         // 저장은 백그라운드에서 수행
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch(Dispatchers.IO) {
             store.setPolicyValue("life_energy", next.toString())
         }
         if (BuildConfig.DEBUG) {
